@@ -1,0 +1,1763 @@
+<html lang="ja"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英語読解支援アプリ - 問題生成＆学習</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #e2e8f0;
+      --accent: #d97706;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --purple: #8b5cf6;
+      --purple-hover: #7c3aed;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 840px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .view-section {
+      display: none;
+    }
+    .view-section.active {
+      display: block;
+    }
+
+    /* 教員用入力画面 */
+    .admin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .admin-card h2 {
+      margin-top: 0;
+      color: var(--primary);
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      padding: 12px;
+      font-size: 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-sizing: border-box;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    textarea:focus {
+      outline: 2px solid var(--primary);
+    }
+
+    /* ローディング画面 */
+    .loading-card {
+      text-align: center;
+      padding: 48px 24px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ダウンロードバナー */
+    .download-banner {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    /* 生徒用学習画面 */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    select {
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .sticky-top {
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+      background: var(--card-bg);
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      max-height: 40vh;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+    .reading-text {
+      font-size: 16px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    
+    .vocab-target {
+      color: var(--primary);
+      font-weight: bold;
+      border-bottom: 2px dashed var(--primary);
+      cursor: pointer;
+      padding: 0 2px;
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+    .vocab-target:hover {
+      background: #dbeafe;
+    }
+
+    /* タブ切り替えメニュー */
+    .tab-navigation {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .tab-btn {
+      padding: 10px 16px;
+      background: #e2e8f0;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #475569;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .option-btn {
+      text-align: left;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+    .option-btn:hover {
+      background: #eff6ff;
+    }
+    .option-btn.selected {
+      border-color: var(--primary);
+      background: #dbeafe;
+      font-weight: bold;
+    }
+    .action-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .action-btn:hover {
+      background: var(--primary-hover);
+    }
+    .action-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    .secondary-btn {
+      background: #64748b;
+    }
+    .secondary-btn:hover {
+      background: #475569;
+    }
+    .purple-btn {
+      background: var(--purple);
+    }
+    .purple-btn:hover {
+      background: var(--purple-hover);
+    }
+    .green-btn {
+      background: #10b981;
+    }
+    .green-btn:hover {
+      background: #059669;
+    }
+
+    .audio-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+    .audio-btn {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .audio-btn:hover {
+      background: #059669;
+    }
+
+    .ai-chat-box {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-msg {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 85%;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: #dbeafe;
+      color: #1e3a8a;
+    }
+    .chat-msg.ai {
+      align-self: flex-start;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .preset-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .chip-btn {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .chip-btn:hover {
+      background: #c7d2fe;
+    }
+
+    .result-item {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #fff;
+      font-weight: bold;
+    }
+    .badge.correct { background: var(--success); }
+    .badge.incorrect { background: var(--danger); }
+
+    /* モーダルポップアップ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      border: none;
+      background: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #64748b;
+    }
+    .modal-word {
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .modal-meaning {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .modal-example-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 1. 教員用：英文入力画面 -->
+  <section id="adminView" class="view-section">
+    <div class="admin-card">
+      <h2>教員用：教材生成メニュー</h2>
+      <p style="font-size:14px; color:#64748b;">英文テキストを入力し「問題生成」を押してください。Level 1〜5のリライトテキスト、単語ヒント、読解問題（各5問）が自動生成されます。</p>
+      <textarea id="rawTextInput" placeholder="ここに英文テキストを入力してください..."></textarea>
+      <button style="margin-top:16px;" class="action-btn" id="startGenBtn">問題生成を開始する</button>
+    </div>
+  </section>
+
+  <!-- 2. ローディング画面 -->
+  <section id="loadingView" class="view-section">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <h3>AIが教材データを生成中です...</h3>
+      <p style="font-size:14px; color:#64748b;">難易度別リライト、単語ヒント、読解質問を作成しています。<br>（約15〜30秒ほどかかります）</p>
+    </div>
+  </section>
+
+  <!-- 3. 生徒用：学習UI画面 -->
+  <section id="studentView" class="view-section active">
+    
+    <!-- 教員向け：配布用ファイル書き出しバー -->
+    <div id="exportBanner" class="download-banner">
+      <span style="font-size: 14px; color: #065f46; font-weight: bold;">🎉 教材データが正常に生成されました！</span>
+      <button id="downloadStudentHtmlBtn" class="action-btn green-btn" style="width: auto; padding: 8px 16px; font-size: 14px;">
+        📥 生徒用HTMLファイルを保存する
+      </button>
+    </div>
+
+    <header>
+      <h1 style="font-size:20px; margin:0;">英語読解学習</h1>
+      <div>
+        <label for="levelSelect"><b>難易度: </b></label>
+        <select id="levelSelect">
+          <option value="level_1">Level 1 (CEFR A1.1)</option>
+          <option value="level_2">Level 2 (CEFR A1.2)</option>
+          <option value="level_3" selected="">Level 3 (標準 A2)</option>
+          <option value="level_4">Level 4 (CEFR A2.2)</option>
+          <option value="level_5">Level 5 (CEFR B1)</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="sticky-top">
+      <h2>Reading Passage</h2>
+      <p style="font-size:12px; color:#64748b; margin-top:-4px; margin-bottom:8px;">💡 下線がついた青い単語をクリックすると、意味と例文が表示されます。</p>
+      <div id="readingText" class="reading-text">Part 1: Emi talks to Kiet, a student from Thailand, about how she is learning English
+I often listen to American pop songs on the Internet. This helps me <span class="vocab-target" onclick="openVocabModal('level_3', 0)">acquire</span> a natural American accent. One of my friends recently praised my English. She said I speak like a native speaker, which made me very happy. However, I still have trouble with certain words and phrases.
+Why do I want to speak like an American? You may think it’s <span class="vocab-target" onclick="openVocabModal('level_3', 1)">nonsense</span>, but I don’t think so. When we study something, we need a model. Learners often choose American English or British English as their model, although there are many varieties of English in the world. In today’s Japan, it’s common to choose American English as our model. Once learners have chosen their model, they should do their best to copy that model.</div>
+      
+      <div class="audio-toolbar">
+        <button id="ttsPlayBtn" class="audio-btn">
+          <span>🔊</span> 英文を読み上げる
+        </button>
+        <span id="ttsStatus" style="font-size:12px; color:#64748b;"></span>
+      </div>
+    </div>
+
+    <div class="tab-navigation">
+      <button class="tab-btn active" id="tabQuizBtn" onclick="switchTab('quiz')">📝 読解クイズ</button>
+      <button class="tab-btn" id="tabTutorBtn" onclick="switchTab('tutor')">🤖 AI学習チューター</button>
+      <button class="tab-btn" id="tabWritingBtn" onclick="switchTab('writing')">✍️ AI要約・英作文添削</button>
+    </div>
+
+    <div id="tabQuizContent" class="tab-content" style="display: block;">
+      <div id="appBody" class="card">
+    <h3>Question 1 / 5</h3>
+    <p style="font-size:16px;"><b>Why does Emi listen to American pop songs on the Internet?</b></p>
+    <div class="options">
+      <button class="option-btn " data-qid="1" data-optid="A">
+        <b>A.</b> To memorize lyric vocabulary for a test.
+      </button>
+    
+      <button class="option-btn " data-qid="1" data-optid="B">
+        <b>B.</b> To acquire a natural American accent.
+      </button>
+    
+      <button class="option-btn " data-qid="1" data-optid="C">
+        <b>C.</b> To teach Kiet how to sing in English.
+      </button>
+    
+      <button class="option-btn " data-qid="1" data-optid="D">
+        <b>D.</b> To learn about American history.
+      </button>
+    </div>
+    <button id="nextBtn" class="action-btn" disabled="">
+      次の質問へ
+    </button>
+  </div>
+    </div>
+
+    <div id="tabTutorContent" class="tab-content" style="display:none;">
+      <div class="card">
+        <h3>🤖 Gemini AI学習チューター</h3>
+        <p style="font-size:14px; color:#64748b;">本文の文構造・文法・和訳について質問したり、以下のクイック分析ボタンを押してください。</p>
+
+        <div class="preset-chips">
+          <button class="chip-btn" onclick="askTutorPreset('analyze')">🔍 全文の構造・文法解説</button>
+          <button class="chip-btn" onclick="askTutorPreset('translate')">🇯🇵 自然な日本語訳を表示</button>
+          <button class="chip-btn" onclick="askTutorPreset('simplify')">💡 中学生レベルにさらに噛み砕いて説明</button>
+        </div>
+
+        <div id="chatBox" class="ai-chat-box">
+          <div class="chat-msg ai">こんにちは！この英文で分からない文法や単語、全体の意味など何でも質問してくださいね。</div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="tutorInput" placeholder="質問を入力... (例: whichの役割を教えて)" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:6px;">
+          <button id="sendTutorBtn" class="action-btn" style="width:auto; padding:10px 18px;">送信</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tabWritingContent" class="tab-content" style="display:none;">
+      <div class="card">
+        <h3>✍️ AI 自由要約・英作文添削チャレンジ</h3>
+        <p style="font-size:14px; color:#64748b;">本文を読んだ感想や、1〜2文での簡単な要約を英語で書いてみましょう。Geminiが文法や表現を採点・添削します！</p>
+        
+        <textarea id="studentWritingInput" style="height:110px;" placeholder="Write your summary or thoughts in English..."></textarea>
+        
+        <button id="checkWritingBtn" class="action-btn purple-btn" style="margin-top:12px;">Gemini AIで添削・評価する</button>
+
+        <div id="writingResultArea" style="margin-top:16px; display:none;">
+          <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+          <div id="writingFeedback" style="background:#f8fafc; padding:16px; border-radius:8px; border:1px solid var(--border); font-size:14px; line-height:1.6;"></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<!-- 単語詳細ポップアップモーダル -->
+<div id="vocabModal" class="modal-overlay">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalWord" class="modal-word"></div>
+    <div id="modalMeaning" class="modal-meaning"></div>
+    <div class="modal-example-box">
+      <div style="font-size:12px; color:#64748b; font-weight:bold; margin-bottom:4px;">例文 (Example)</div>
+      <div id="modalExampleEn" style="font-weight: bold; color:#334155;"></div>
+      <div id="modalExampleJa" style="color: #64748b; margin-top: 2px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- 初期埋め込み用データ変数 ---
+let appData = {
+  "level_1": {
+    "text": "Emi talks to Kiet from Thailand about learning English. She listens to American pop songs on the Internet. This helps her get a good American accent. Her friend said, \"You speak like a native speaker.\" Emi was happy. But she still has trouble with some words. Emi thinks learners need a model to study English. In Japan, many people choose American English. Emi says learners should try to copy their model.",
+    "hints": [
+      {
+        "word": "accent",
+        "meaning": "アクセント、話し方の特徴",
+        "example_en": "She has a nice American accent.",
+        "example_ja": "彼女は素敵なお話のなまり（アメリカ英語のアクセント）を持っています。"
+      },
+      {
+        "word": "native",
+        "meaning": "母国語の話者、ネイティブ",
+        "example_en": "He is a native English speaker.",
+        "example_ja": "彼は英語のネイティブスピーカーです。"
+      },
+      {
+        "word": "model",
+        "meaning": "手本、モデル",
+        "example_en": "This teacher is a good model for us.",
+        "example_ja": "この先生は私たちにとって良い手本です。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "What does Emi listen to on the Internet?",
+        "options": [
+          {
+            "id": "A",
+            "text": "British news"
+          },
+          {
+            "id": "B",
+            "text": "American pop songs"
+          },
+          {
+            "id": "C",
+            "text": "Japanese stories"
+          },
+          {
+            "id": "D",
+            "text": "Thai radio programs"
+          }
+        ],
+        "answer": "B",
+        "explanation": "エミはインターネットでアメリカのポップソングを聞いています。",
+        "evidence": "She listens to American pop songs on the Internet."
+      },
+      {
+        "id": 2,
+        "question": "Why was Emi happy?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Her friend praised her English."
+          },
+          {
+            "id": "B",
+            "text": "She visited Thailand with Kiet."
+          },
+          {
+            "id": "C",
+            "text": "She bought new music CDs."
+          },
+          {
+            "id": "D",
+            "text": "She understood all English words."
+          }
+        ],
+        "answer": "A",
+        "explanation": "友達にネイティブのように話すと言われて嬉しくなりました。",
+        "evidence": "Her friend said, \"You speak like a native speaker.\" Emi was happy."
+      },
+      {
+        "id": 3,
+        "question": "What problem does Emi still have?",
+        "options": [
+          {
+            "id": "A",
+            "text": "She cannot find any music on the Internet."
+          },
+          {
+            "id": "B",
+            "text": "She does not like American accent."
+          },
+          {
+            "id": "C",
+            "text": "She still has trouble with some words."
+          },
+          {
+            "id": "D",
+            "text": "She does not want to speak English."
+          }
+        ],
+        "answer": "C",
+        "explanation": "エミは今でもいくつかの単語に苦労しています。",
+        "evidence": "But she still has trouble with some words."
+      },
+      {
+        "id": 4,
+        "question": "What model do many people in Japan choose?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Thai English"
+          },
+          {
+            "id": "B",
+            "text": "British English"
+          },
+          {
+            "id": "C",
+            "text": "American English"
+          },
+          {
+            "id": "D",
+            "text": "Australian English"
+          }
+        ],
+        "answer": "C",
+        "explanation": "日本では多くの人がアメリカ英語を選びます。",
+        "evidence": "In Japan, many people choose American English."
+      },
+      {
+        "id": 5,
+        "question": "What should learners do after choosing a model?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Try to copy their model."
+          },
+          {
+            "id": "B",
+            "text": "Stop listening to music."
+          },
+          {
+            "id": "C",
+            "text": "Change their model every day."
+          },
+          {
+            "id": "D",
+            "text": "Forget about grammar."
+          }
+        ],
+        "answer": "A",
+        "explanation": "手本を選んだら、それを真似する（コピーする）よう努めるべきだと述べています。",
+        "evidence": "Emi says learners should try to copy their model."
+      }
+    ]
+  },
+  "level_2": {
+    "text": "Emi is talking with Kiet, a Thai student, about studying English. She often listens to American music on the Internet to get a natural American accent. Recently, a friend praised Emi's English and said she sounded like a native speaker. This made Emi happy, though she still finds some words and phrases difficult. Emi believes that every language learner needs a model. In Japan, choosing American English as a model is very common. She thinks students should try their best to imitate that model.",
+    "hints": [
+      {
+        "word": "praise",
+        "meaning": "褒める",
+        "example_en": "The teacher praised her student for working hard.",
+        "example_ja": "先生は生徒がよく頑張ったことを褒めました。"
+      },
+      {
+        "word": "common",
+        "meaning": "一般的な、よくある",
+        "example_en": "It is common to wear warm clothes in winter.",
+        "example_ja": "冬に暖かい服を着ることは一般的です。"
+      },
+      {
+        "word": "imitate",
+        "meaning": "真似する、模倣する",
+        "example_en": "Children often imitate their parents.",
+        "example_ja": "子供たちはよく親の真似をします。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "How does Emi practice her American accent?",
+        "options": [
+          {
+            "id": "A",
+            "text": "By singing songs with Kiet"
+          },
+          {
+            "id": "B",
+            "text": "By listening to American music online"
+          },
+          {
+            "id": "C",
+            "text": "By watching British movies"
+          },
+          {
+            "id": "D",
+            "text": "By reading textbooks aloud"
+          }
+        ],
+        "answer": "B",
+        "explanation": "エミは自然なアメリカのアクセントを身につけるために、ネットでアメリカの音楽を聴いています。",
+        "evidence": "She often listens to American music on the Internet to get a natural American accent."
+      },
+      {
+        "id": 2,
+        "question": "What made Emi feel happy recently?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Passing a difficult English examination."
+          },
+          {
+            "id": "B",
+            "text": "Being told she sounded like a native speaker."
+          },
+          {
+            "id": "C",
+            "text": "Traveling to Thailand with her friend."
+          },
+          {
+            "id": "D",
+            "text": "Teaching English to other students."
+          }
+        ],
+        "answer": "B",
+        "explanation": "友達からネイティブのように聞こえると褒められたことが嬉しかったと書かれています。",
+        "evidence": "a friend praised Emi's English and said she sounded like a native speaker. This made Emi happy"
+      },
+      {
+        "id": 3,
+        "question": "Does Emi think her English is perfect?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Yes, because her friend praised her."
+          },
+          {
+            "id": "B",
+            "text": "Yes, because she knows all the vocabulary."
+          },
+          {
+            "id": "C",
+            "text": "No, because she still struggles with some words and phrases."
+          },
+          {
+            "id": "D",
+            "text": "No, because she cannot understand American music."
+          }
+        ],
+        "answer": "C",
+        "explanation": "まだ一部の単語やフレーズを難しいと感じているため、完全だとは思っていません。",
+        "evidence": "though she still finds some words and phrases difficult."
+      },
+      {
+        "id": 4,
+        "question": "According to the passage, what is common in Japan?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Learning many different foreign languages."
+          },
+          {
+            "id": "B",
+            "text": "Choosing British English as the main target."
+          },
+          {
+            "id": "C",
+            "text": "Selecting American English as a language model."
+          },
+          {
+            "id": "D",
+            "text": "Avoiding foreign language models completely."
+          }
+        ],
+        "answer": "C",
+        "explanation": "日本ではアメリカ英語を手本として選ぶことが一般的です。",
+        "evidence": "In Japan, choosing American English as a model is very common."
+      },
+      {
+        "id": 5,
+        "question": "What advice does Emi offer to language learners?",
+        "options": [
+          {
+            "id": "A",
+            "text": "To create their own unique accents."
+          },
+          {
+            "id": "B",
+            "text": "To try hard to copy their chosen model."
+          },
+          {
+            "id": "C",
+            "text": "To study without listening to music."
+          },
+          {
+            "id": "D",
+            "text": "To focus only on British English."
+          }
+        ],
+        "answer": "B",
+        "explanation": "選んだ手本を一生懸命真似（模倣）するべきだとアドバイスしています。",
+        "evidence": "She thinks students should try their best to imitate that model."
+      }
+    ]
+  },
+  "level_3": {
+    "text": "Part 1: Emi talks to Kiet, a student from Thailand, about how she is learning English\nI often listen to American pop songs on the Internet. This helps me acquire a natural American accent. One of my friends recently praised my English. She said I speak like a native speaker, which made me very happy. However, I still have trouble with certain words and phrases.\nWhy do I want to speak like an American? You may think it’s nonsense, but I don’t think so. When we study something, we need a model. Learners often choose American English or British English as their model, although there are many varieties of English in the world. In today’s Japan, it’s common to choose American English as our model. Once learners have chosen their model, they should do their best to copy that model.",
+    "hints": [
+      {
+        "word": "acquire",
+        "meaning": "習得する、身につける",
+        "example_en": "It takes time to acquire a second language.",
+        "example_ja": "外国語を習得するには時間がかかります。"
+      },
+      {
+        "word": "nonsense",
+        "meaning": "無意味なこと、くだらないこと",
+        "example_en": "What he said was absolute nonsense.",
+        "example_ja": "彼の言ったことはまったくのナンセンス（無意味）でした。"
+      },
+      {
+        "word": "variety",
+        "meaning": "多様性、種類",
+        "example_en": "There is a wide variety of patterns to choose from.",
+        "example_ja": "選べるパターンには多様な種類があります。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "Why does Emi listen to American pop songs on the Internet?",
+        "options": [
+          {
+            "id": "A",
+            "text": "To memorize lyric vocabulary for a test."
+          },
+          {
+            "id": "B",
+            "text": "To acquire a natural American accent."
+          },
+          {
+            "id": "C",
+            "text": "To teach Kiet how to sing in English."
+          },
+          {
+            "id": "D",
+            "text": "To learn about American history."
+          }
+        ],
+        "answer": "B",
+        "explanation": "アメリカのポップソングを聴く理由は、自然なアメリカアクセントを身につけるためです。",
+        "evidence": "This helps me acquire a natural American accent."
+      },
+      {
+        "id": 2,
+        "question": "How did Emi react to her friend's compliment?",
+        "options": [
+          {
+            "id": "A",
+            "text": "She felt delighted by the feedback."
+          },
+          {
+            "id": "B",
+            "text": "She disagreed with her friend completely."
+          },
+          {
+            "id": "C",
+            "text": "She decided to stop studying English."
+          },
+          {
+            "id": "D",
+            "text": "She felt embarrassed and upset."
+          }
+        ],
+        "answer": "A",
+        "explanation": "友達からネイティブのようだと褒められ、とても嬉しく感じました。",
+        "evidence": "She said I speak like a native speaker, which made me very happy."
+      },
+      {
+        "id": 3,
+        "question": "What is Emi's perspective on having a learning model?",
+        "options": [
+          {
+            "id": "A",
+            "text": "It is unnecessary because all accents are identical."
+          },
+          {
+            "id": "B",
+            "text": "It is essential for guiding language study effectively."
+          },
+          {
+            "id": "C",
+            "text": "It restricts a student's creative expression."
+          },
+          {
+            "id": "D",
+            "text": "It is only useful for advanced scholars."
+          }
+        ],
+        "answer": "B",
+        "explanation": "何かを学ぶときにはモデル（手本）が必要であり、無意味なことではないと主張しています。",
+        "evidence": "You may think it’s nonsense, but I don’t think so. When we study something, we need a model."
+      },
+      {
+        "id": 4,
+        "question": "According to Emi, what choice is typical for learners in present-day Japan?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Adopting British English as their target."
+          },
+          {
+            "id": "B",
+            "text": "Mixing various global English dialects."
+          },
+          {
+            "id": "C",
+            "text": "Selecting American English as their model."
+          },
+          {
+            "id": "D",
+            "text": "Avoiding native models altogether."
+          }
+        ],
+        "answer": "C",
+        "explanation": "今日の日本において、アメリカ英語を手本として選ぶことは一般的です。",
+        "evidence": "In today’s Japan, it’s common to choose American English as our model."
+      },
+      {
+        "id": 5,
+        "question": "What step should learners take after deciding on a model?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Effortfully endeavor to copy that model."
+          },
+          {
+            "id": "B",
+            "text": "Switch to a different accent immediately."
+          },
+          {
+            "id": "C",
+            "text": "Focus exclusively on written translations."
+          },
+          {
+            "id": "D",
+            "text": "Ignore the standard pronunciation rules."
+          }
+        ],
+        "answer": "A",
+        "explanation": "モデルを決めたら、それを最大限真似（コピー）しようと努力するべきです。",
+        "evidence": "Once learners have chosen their model, they should do their best to copy that model."
+      }
+    ]
+  },
+  "level_4": {
+    "text": "In a conversation with Kiet, a student from Thailand, Emi shares her strategy for mastering English pronunciation. By regularly listening to American pop songs online, she aims to adopt an authentic American accent. She was thrilled when a friend recently commended her native-like fluency, yet she admits to still experiencing difficulties with certain terms and expressions. Addressing potential criticism that aiming for a specific accent is pointlessly rigid, Emi emphasizes the necessity of having a concrete target model in skill acquisition. In contemporary Japan, American English serves as the dominant standard. Emi asserts that once a target dialect is selected, learners ought to exert maximum effort to emulate it accurately.",
+    "hints": [
+      {
+        "word": "commend",
+        "meaning": "称賛する、褒める",
+        "example_en": "The manager commended the employee for her excellent performance.",
+        "example_ja": "マネージャーは従業員の素晴らしい業績を称賛しました。"
+      },
+      {
+        "word": "emphasize",
+        "meaning": "強調する",
+        "example_en": "The speaker emphasized the importance of early education.",
+        "example_ja": "講演者は早期教育の重要性を強調しました。"
+      },
+      {
+        "word": "emulate",
+        "meaning": "見習う、見劣りしないよう真似る",
+        "example_en": "Young athletes often try to emulate their sporting heroes.",
+        "example_ja": "若いアスリートはよくスポーツ界のヒーローを見習おうとします。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "What is Emi's primary objective when listening to American pop songs online?",
+        "options": [
+          {
+            "id": "A",
+            "text": "To analyze contemporary American music trends."
+          },
+          {
+            "id": "B",
+            "text": "To internalize an authentic American accent."
+          },
+          {
+            "id": "C",
+            "text": "To memorize complex grammatical structures."
+          },
+          {
+            "id": "D",
+            "text": "To prepare for an upcoming public performance."
+          }
+        ],
+        "answer": "B",
+        "explanation": "オンラインでアメリカのポップソングを聴く主な目的は、本物のアメリカ英語のアクセントを身につけることです。",
+        "evidence": "By regularly listening to American pop songs online, she aims to adopt an authentic American accent."
+      },
+      {
+        "id": 2,
+        "question": "Which statement best describes Emi's current English proficiency?",
+        "options": [
+          {
+            "id": "A",
+            "text": "She has achieved complete mastery without any remaining weaknesses."
+          },
+          {
+            "id": "B",
+            "text": "She receives praise for fluency but still struggles with specific phrases."
+          },
+          {
+            "id": "C",
+            "text": "She communicates fluently in writing but struggles with oral expression."
+          },
+          {
+            "id": "D",
+            "text": "She is unable to imitate foreign accents despite continuous practice."
+          }
+        ],
+        "answer": "B",
+        "explanation": "ネイティブのような流暢さを称賛されたものの、特定の語句表現には依然として苦労していると述べています。",
+        "evidence": "She was thrilled when a friend recently commended her native-like fluency, yet she admits to still experiencing difficulties with certain terms and expressions."
+      },
+      {
+        "id": 3,
+        "question": "How does Emi justify her focus on speaking with a specific accent?",
+        "options": [
+          {
+            "id": "A",
+            "text": "She believes having a clear target model is crucial for effective learning."
+          },
+          {
+            "id": "B",
+            "text": "She argues that American English is objectively superior to all other dialects."
+          },
+          {
+            "id": "C",
+            "text": "She contends that native speakers reject learners without standard accents."
+          },
+          {
+            "id": "D",
+            "text": "She claims that accent practice is the only way to expand vocabulary."
+          }
+        ],
+        "answer": "A",
+        "explanation": "特定のアクセントを目指すことの妥当性として、技能習得には明確な目標モデルを持つことが不可欠だと強調しています。",
+        "evidence": "Emi emphasizes the necessity of having a concrete target model in skill acquisition."
+      },
+      {
+        "id": 4,
+        "question": "According to the text, what role does American English play in contemporary Japan?",
+        "options": [
+          {
+            "id": "A",
+            "text": "It is rarely utilized in educational environments."
+          },
+          {
+            "id": "B",
+            "text": "It functions as the dominant standard for learners."
+          },
+          {
+            "id": "C",
+            "text": "It is gradually being replaced by British English."
+          },
+          {
+            "id": "D",
+            "text": "It is considered inferior to regional varieties of English."
+          }
+        ],
+        "answer": "B",
+        "explanation": "現代の日本において、アメリカ英語は学習者にとって主要な（主流の）標準モデルとして機能しています。",
+        "evidence": "In contemporary Japan, American English serves as the dominant standard."
+      },
+      {
+        "id": 5,
+        "question": "What does Emi urge learners to do once they select a specific target dialect?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Compare it constantly with other English varieties."
+          },
+          {
+            "id": "B",
+            "text": "Exert maximum effort to replicate it accurately."
+          },
+          {
+            "id": "C",
+            "text": "Focus primarily on understanding non-native accents."
+          },
+          {
+            "id": "D",
+            "text": "Modify the dialect to suit their native language habits."
+          }
+        ],
+        "answer": "B",
+        "explanation": "目標とする方言・モデルを決めたら、それを正確に模倣（真似）するために最大限の努力をするべきだと主張しています。",
+        "evidence": "Emi asserts that once a target dialect is selected, learners ought to exert maximum effort to emulate it accurately."
+      }
+    ]
+  },
+  "level_5": {
+    "text": "During a dialogue with Kiet, an international student from Thailand, Emi elucidates her pedagogical rationale regarding English acquisition. She regularly engages with American pop music via the Internet as a strategy to assimilate authentic American phonetics. Although a recent compliment from a peer acknowledging her near-native pronunciation greatly bolstered her confidence, she acknowledges persistent impediments regarding nuanced vocabulary and idiomatic usage. Emi refutes the notion that striving for a specific accent is superfluous, contending that pedagogical efficiency requires a definitive benchmark. Given that American English functions as the predominant paradigm in contemporary Japan, she advocates that learners, having designated their linguistic model, should meticulously emulate its characteristics.",
+    "hints": [
+      {
+        "word": "elucidate",
+        "meaning": "（明快に）説明する、解明する",
+        "example_en": "The professor elucidated the complex economic theory.",
+        "example_ja": "教授はその複雑な経済理論を明確に説明しました。"
+      },
+      {
+        "word": "superfluous",
+        "meaning": "不必要な、余分な",
+        "example_en": "Detailed explanations are superfluous when the instructions are simple.",
+        "example_ja": "指示が簡単な場合、詳細な説明は不要です。"
+      },
+      {
+        "word": "paradigm",
+        "meaning": "規範、典型的な枠組み",
+        "example_en": "This discovery created a new paradigm in scientific research.",
+        "example_ja": "この発見は科学研究において新しいパラダイム（規範）を生み出しました。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "What underlying pedagogical strategy motivates Emi's engagement with American pop music?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Assimilating authentic American phonetics."
+          },
+          {
+            "id": "B",
+            "text": "Critiquing modern pop lyrics critically."
+          },
+          {
+            "id": "C",
+            "text": "Memorizing archaic grammatical structures."
+          },
+          {
+            "id": "D",
+            "text": "Broadening her knowledge of Western musical theory."
+          }
+        ],
+        "answer": "A",
+        "explanation": "本物のアメリカ英語の発音・音声的特徴（phonetics）を吸収・同化することが動機となっています。",
+        "evidence": "She regularly engages with American pop music via the Internet as a strategy to assimilate authentic American phonetics."
+      },
+      {
+        "id": 2,
+        "question": "Despite receiving praise from her peer, what lingering challenge does Emi acknowledge?",
+        "options": [
+          {
+            "id": "A",
+            "text": "An inability to comprehend spoken English in music."
+          },
+          {
+            "id": "B",
+            "text": "Persistent impediments with nuanced vocabulary and idioms."
+          },
+          {
+            "id": "C",
+            "text": "A total lack of confidence when speaking publicly."
+          },
+          {
+            "id": "D",
+            "text": "Difficulty distinguishing British and American accents."
+          }
+        ],
+        "answer": "B",
+        "explanation": "ネイティブに近い発音を褒められたものの、ニュアンスのある語彙や慣用表現には依然として障害（困難）を感じています。",
+        "evidence": "she acknowledges persistent impediments regarding nuanced vocabulary and idiomatic usage."
+      },
+      {
+        "id": 3,
+        "question": "How does Emi counter the argument that targeting a specific accent is unnecessary?",
+        "options": [
+          {
+            "id": "A",
+            "text": "By claiming that non-standard accents prevent basic communication."
+          },
+          {
+            "id": "B",
+            "text": "By asserting that learning efficiency requires a definitive benchmark."
+          },
+          {
+            "id": "C",
+            "text": "By demonstrating that British English is too complex for beginners."
+          },
+          {
+            "id": "D",
+            "text": "By suggesting that accents dictate intellectual capabilities."
+          }
+        ],
+        "answer": "B",
+        "explanation": "特定のアクセントを目指すのは不要だという考えを否定し、教育的・学習的な効率には明確な基準（benchmark）が必要だと主張しています。",
+        "evidence": "Emi refutes the notion that striving for a specific accent is superfluous, contending that pedagogical efficiency requires a definitive benchmark."
+      },
+      {
+        "id": 4,
+        "question": "How is American English contextualized within modern Japan according to the text?",
+        "options": [
+          {
+            "id": "A",
+            "text": "As an outdated standard undergoing rapid decline."
+          },
+          {
+            "id": "B",
+            "text": "As the predominant paradigm for language learners."
+          },
+          {
+            "id": "C",
+            "text": "As one of many equally utilized linguistic options."
+          },
+          {
+            "id": "D",
+            "text": "As a controversial choice restricted to academic circles."
+          }
+        ],
+        "answer": "B",
+        "explanation": "アメリカ英語は現代日本において、言語学習者の支配的な規範（predominant paradigm）として位置づけられています。",
+        "evidence": "Given that American English functions as the predominant paradigm in contemporary Japan..."
+      },
+      {
+        "id": 5,
+        "question": "What action does Emi advocate once a learner designates a linguistic model?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Meticulously emulating its phonetic features."
+          },
+          {
+            "id": "B",
+            "text": "Evaluating its flaws compared to global varieties."
+          },
+          {
+            "id": "C",
+            "text": "Constructing an individualized accent hybrid."
+          },
+          {
+            "id": "D",
+            "text": "Abandoning formal instruction in favor of immersion."
+          }
+        ],
+        "answer": "A",
+        "explanation": "言語モデルを指定・選定した後は、その特徴を綿密に模倣（エミュレート）することを推奨しています。",
+        "evidence": "she advocates that learners, having designated their linguistic model, should meticulously emulate its characteristics."
+      }
+    ]
+  }
+};
+let currentLevel = 'level_3';
+let currentQuestionIndex = 0;
+let userAnswers = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('startGenBtn').addEventListener('click', startGeneration);
+  document.getElementById('levelSelect').addEventListener('change', (e) => changeLevel(e.target.value));
+  document.getElementById('sendTutorBtn').addEventListener('click', sendTutorQuery);
+  document.getElementById('tutorInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendTutorQuery(); });
+  document.getElementById('checkWritingBtn').addEventListener('click', evaluateWriting);
+  document.getElementById('ttsPlayBtn').addEventListener('click', playSpeechTTS);
+  document.getElementById('downloadStudentHtmlBtn').addEventListener('click', exportStudentHtml);
+
+  document.getElementById('vocabModal').addEventListener('click', (e) => {
+    if (e.target.id === 'vocabModal') closeModal();
+  });
+
+  // 事前定義されたデータが存在する場合は直接生徒用画面を起動（配布用HTMLとして実行時）
+  if (appData) {
+    document.getElementById('exportBanner').style.display = 'none';
+    onSuccessGenerated(appData);
+  }
+});
+
+function switchView(viewId) {
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+
+  if (tabName === 'quiz') {
+    document.getElementById('tabQuizBtn').classList.add('active');
+    document.getElementById('tabQuizContent').style.display = 'block';
+  } else if (tabName === 'tutor') {
+    document.getElementById('tabTutorBtn').classList.add('active');
+    document.getElementById('tabTutorContent').style.display = 'block';
+  } else if (tabName === 'writing') {
+    document.getElementById('tabWritingBtn').classList.add('active');
+    document.getElementById('tabWritingContent').style.display = 'block';
+  }
+}
+
+// Cloudflare Worker経由でGeminiを呼び出す（本物のAPIキーはWorker側にのみ存在）
+// ↓ wrangler deploy 後に発行される実際のURLに書き換えてください
+const WORKER_URL = "https://gemini-proxy.knaoshi.workers.dev/gemini";
+const WORKER_AUTH = "Basic " + btoa("seito:sakura2026");
+
+async function fetchGeminiText(userPrompt, systemInstruction = "") {
+  const payload = {
+    contents: [{ parts: [{ text: userPrompt }] }],
+    systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined
+  };
+
+  const response = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': WORKER_AUTH
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `API Error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result?.candidates?.[0]?.content?.parts?.[0]?.text || "応答を取得できませんでした。";
+}
+
+function playSpeechTTS() {
+  const text = appData[currentLevel]?.text;
+  if (!text) return;
+
+  const statusEl = document.getElementById('ttsStatus');
+
+  if (!('speechSynthesis' in window)) {
+    statusEl.innerText = "お使いのブラウザは音声読み上げに対応していません。";
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.9;
+
+  utterance.onstart = () => { statusEl.innerText = "再生中..."; };
+  utterance.onend = () => { statusEl.innerText = ""; };
+  utterance.onerror = () => { statusEl.innerText = "読み上げエラー"; };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+async function askTutorPreset(type) {
+  const text = appData[currentLevel]?.text;
+  if (!text) return;
+
+  let query = "";
+  if (type === 'analyze') query = "この英文の重要文法ポイントと各文の構造（S, V, Oなど）を分かりやすく解説してください。";
+  if (type === 'translate') query = "この英文の自然な日本語全訳を作成してください。";
+  if (type === 'simplify') query = "中学生でもスッキリ理解できるように、もっと簡単な表現で内容を説明してください。";
+
+  appendChatMessage("user", query);
+  await processTutorResponse(query);
+}
+
+async function sendTutorQuery() {
+  const input = document.getElementById('tutorInput');
+  const query = input.value.trim();
+  if (!query) return;
+
+  input.value = "";
+  appendChatMessage("user", query);
+  await processTutorResponse(query);
+}
+
+async function processTutorResponse(userQuery) {
+  const chatBox = document.getElementById('chatBox');
+  const loadingMsg = appendChatMessage("ai", "🤖 考え中...");
+
+  try {
+    const text = appData[currentLevel]?.text || "";
+    const systemPrompt = "あなたは親切でわかりやすい英語のパーソナルAI家庭教師です。生徒の質問に対し、丁寧で理解しやすい日本語でアドバイスしてください。";
+    const prompt = `対象英文:\n"""\n${text}\n"""\n\n質問: ${userQuery}`;
+
+    const reply = await fetchGeminiText(prompt, systemPrompt);
+    loadingMsg.innerHTML = escapeHtml(reply).replace(/\n/g, '<br>');
+    chatBox.scrollTop = chatBox.scrollHeight;
+  } catch (err) {
+    loadingMsg.innerText = "エラー: " + err.message;
+  }
+}
+
+function appendChatMessage(role, content) {
+  const chatBox = document.getElementById('chatBox');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-msg ${role}`;
+  msgDiv.innerText = content;
+  chatBox.appendChild(msgDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return msgDiv;
+}
+
+async function evaluateWriting() {
+  const writingText = document.getElementById('studentWritingInput').value.trim();
+  if (!writingText) {
+    alert("英文を入力してください。");
+    return;
+  }
+
+  const resultArea = document.getElementById('writingResultArea');
+  const feedbackDiv = document.getElementById('writingFeedback');
+  resultArea.style.display = "block";
+  feedbackDiv.innerHTML = "🤖 Geminiが添削・採点中...";
+
+  try {
+    const passageText = appData[currentLevel]?.text || "";
+    const systemInstruction = "あなたは英語作文の添削専門家です。生徒が書いた英文のスコア（100点満点）、文法・綴りの修正、内容の正確さ、より自然な表現の提案を構造化してフィードバックしてください。";
+    const prompt = `読解本文:\n"${passageText}"\n\n生徒の提出作文:\n"${writingText}"\n\n以下の形式でフィードバックを作成してください:\n1. 総合評価スコア (0-100点)\n2. 良い点\n3. 文法・表現の改善点（修正前 vs 修正後）\n4. 内容理解度についてのコメント`;
+
+    const feedbackText = await fetchGeminiText(prompt, systemInstruction);
+    feedbackDiv.innerHTML = escapeHtml(feedbackText).replace(/\n/g, '<br>');
+  } catch (e) {
+    feedbackDiv.innerText = "添削中にエラーが発生しました: " + e.message;
+  }
+}
+
+async function startGeneration() {
+  const rawText = document.getElementById('rawTextInput').value.trim();
+  if (!rawText) {
+    alert('英文を入力してください。');
+    return;
+  }
+  switchView('loadingView');
+
+  try {
+    const generatedData = await generateAppContentAPI(rawText);
+    onSuccessGenerated(generatedData);
+  } catch (err) {
+    onError(err);
+  }
+}
+
+async function generateAppContentAPI(rawText) {
+  const systemInstruction = "あなたは英語教育のスペシャリストです。提供された英文を難易度別（level_1からlevel_5）にリライトし、それぞれの重要な単語のヒント（日本語訳および簡単な例文・例文訳付き）と4択の読解問題5問を含むJSONを出力してください。キーは必ず level_1, level_2, level_3, level_4, level_5 としてください。";
+  
+  const prompt = `以下のテキストをもとに問題データを生成し、JSONフォーマットのみを返してください。
+
+テキスト:
+"${rawText}"
+
+出力するJSON構造例:
+{
+  "level_1": {
+    "text": "リライトテキスト...",
+    "hints": [
+      {
+        "word": "important",
+        "meaning": "重要な",
+        "example_en": "This is an important book.",
+        "example_ja": "これは重要な本です。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "問題文",
+        "options": [
+          {"id": "A", "text": "選択肢A"},
+          {"id": "B", "text": "選択肢B"},
+          {"id": "C", "text": "選択肢C"},
+          {"id": "D", "text": "選択肢D"}
+        ],
+        "answer": "A",
+        "explanation": "解説",
+        "evidence": "根拠英文"
+      }
+    ]
+  },
+  "level_2": ...,
+  "level_3": ...,
+  "level_4": ...,
+  "level_5": ...
+}`;
+
+  const jsonResponseText = await fetchGeminiText(prompt, systemInstruction);
+  const cleanJson = jsonResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
+  return JSON.parse(cleanJson);
+}
+
+function onSuccessGenerated(data) {
+  appData = data;
+  currentLevel = 'level_3';
+  document.getElementById('levelSelect').value = 'level_3';
+  currentQuestionIndex = 0;
+  userAnswers = {};
+
+  renderLevel();
+  switchView('studentView');
+  switchTab('quiz');
+}
+
+function onError(error) {
+  alert('エラーが発生しました: ' + (error.message || error));
+  switchView('adminView');
+}
+
+function changeLevel(level) {
+  currentLevel = level;
+  currentQuestionIndex = 0;
+  userAnswers = {};
+  renderLevel();
+}
+
+function renderLevel() {
+  const data = appData[currentLevel];
+  if (!data) return;
+
+  const textContainer = document.getElementById('readingText');
+  let text = escapeHtml(data.text);
+
+  if (data.hints && data.hints.length > 0) {
+    data.hints.forEach((hint, index) => {
+      const escapedWord = escapeHtml(hint.word);
+      const regex = new RegExp(`\\b(${escapedWord})\\b`, 'gi');
+      text = text.replace(regex, `<span class="vocab-target" onclick="openVocabModal('${currentLevel}', ${index})">$1</span>`);
+    });
+  }
+
+  textContainer.innerHTML = text;
+  showQuestion(currentQuestionIndex);
+}
+
+function openVocabModal(level, hintIndex) {
+  const hint = appData[level]?.hints?.[hintIndex];
+  if (!hint) return;
+
+  document.getElementById('modalWord').innerText = hint.word;
+  document.getElementById('modalMeaning').innerText = hint.meaning;
+  document.getElementById('modalExampleEn').innerText = hint.example_en || hint.example || "No example sentence available.";
+  document.getElementById('modalExampleJa').innerText = hint.example_ja || "";
+
+  document.getElementById('vocabModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('vocabModal').classList.remove('active');
+}
+
+function showQuestion(index) {
+  const questions = appData[currentLevel]?.questions;
+  if (!questions || questions.length === 0) {
+    document.getElementById('appBody').innerHTML = "<p>問題データが見つかりません。</p>";
+    return;
+  }
+
+  const qData = questions[index];
+  const appBody = document.getElementById('appBody');
+  const selected = userAnswers[qData.id] || "";
+
+  let optionsHTML = qData.options.map(opt => {
+    const isSelected = selected === opt.id;
+    return `
+      <button class="option-btn ${isSelected ? 'selected' : ''}" data-qid="${qData.id}" data-optid="${opt.id}">
+        <b>${escapeHtml(opt.id)}.</b> ${escapeHtml(opt.text)}
+      </button>
+    `;
+  }).join('');
+
+  appBody.innerHTML = `
+    <h3>Question ${index + 1} / ${questions.length}</h3>
+    <p style="font-size:16px;"><b>${escapeHtml(qData.question)}</b></p>
+    <div class="options">${optionsHTML}</div>
+    <button id="nextBtn" class="action-btn" ${!selected ? 'disabled' : ''}>
+      ${index < questions.length - 1 ? '次の質問へ' : '解答を確認する'}
+    </button>
+  `;
+
+  appBody.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid = btn.getAttribute('data-qid');
+      const optid = btn.getAttribute('data-optid');
+      selectOption(qid, optid);
+    });
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', nextStep);
+}
+
+function selectOption(qId, letter) {
+  userAnswers[qId] = letter;
+  showQuestion(currentQuestionIndex);
+}
+
+function nextStep() {
+  const questions = appData[currentLevel].questions;
+  if (currentQuestionIndex < questions.length - 1) {
+    currentQuestionIndex++;
+    showQuestion(currentQuestionIndex);
+  } else {
+    showReviewScreen();
+  }
+}
+
+function showReviewScreen() {
+  const questions = appData[currentLevel].questions;
+  const appBody = document.getElementById('appBody');
+
+  let reviewHTML = `<h3>解答の確認</h3><p>全${questions.length}問の回答が完了しました。内容を確認してください。</p><ul>`;
+  questions.forEach(q => {
+    const ans = userAnswers[q.id] || "未選択";
+    reviewHTML += `<li><b>Q${q.id}:</b> 選択した答え <b>${escapeHtml(ans)}</b></li>`;
+  });
+  reviewHTML += `</ul>
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button id="fixBtn" class="action-btn secondary-btn">修正する</button>
+      <button id="gradeBtn" class="action-btn">採点する</button>
+    </div>
+  `;
+  appBody.innerHTML = reviewHTML;
+
+  document.getElementById('fixBtn').addEventListener('click', () => {
+    currentQuestionIndex = 0;
+    showQuestion(0);
+  });
+  document.getElementById('gradeBtn').addEventListener('click', gradeAnswers);
+}
+
+function gradeAnswers() {
+  const questions = appData[currentLevel].questions;
+  let correctCount = 0;
+
+  questions.forEach(q => {
+    if (userAnswers[q.id] === q.answer) {
+      correctCount++;
+    }
+  });
+
+  const total = questions.length;
+  const score = Math.round((correctCount / total) * 100);
+  const appBody = document.getElementById('appBody');
+
+  let resultHTML = `
+    <h2>採点結果: ${score}点 / 100点 (${correctCount}/${total}正解)</h2>
+    <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+  `;
+
+  questions.forEach((q, idx) => {
+    const isCorrect = userAnswers[q.id] === q.answer;
+    resultHTML += `
+      <div class="result-item">
+        <p>
+          <span class="badge ${isCorrect ? 'correct' : 'incorrect'}">
+            ${isCorrect ? '正解' : '不正解'}
+          </span>
+          <b style="margin-left:8px;">Q${idx + 1}: ${escapeHtml(q.question)}</b>
+        </p>
+        <p>あなたの回答: <b>${escapeHtml(userAnswers[q.id] || "未解答")}</b> | 正解: <b style="color:var(--primary);">${escapeHtml(q.answer)}</b></p>
+        <div style="font-size:14px; background:#f8fafc; padding:12px; border-radius:6px; line-height:1.5; margin-top:8px;">
+          <b>根拠英文:</b> <i>"${escapeHtml(q.evidence)}"</i><br>
+          <b>解説:</b> ${escapeHtml(q.explanation)}
+        </div>
+      </div>
+    `;
+  });
+
+  resultHTML += `
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button id="resetAdminBtn" class="action-btn secondary-btn">新しい英文を入力する</button>
+      <button id="retryBtn" class="action-btn">もう一度解く</button>
+    </div>
+  `;
+  appBody.innerHTML = resultHTML;
+
+  document.getElementById('resetAdminBtn').addEventListener('click', () => switchView('adminView'));
+  document.getElementById('retryBtn').addEventListener('click', () => changeLevel(currentLevel));
+}
+
+function escapeHtml(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// --- 生徒用HTMLファイルの書き出し機能 ---
+function exportStudentHtml() {
+  if (!appData) {
+    alert("教材データが存在しません。");
+    return;
+  }
+
+  // 現在のHTMLドキュメント全体のソースを取得
+  let htmlContent = document.documentElement.outerHTML;
+
+  // appDataをコード内に直接埋め込むよう置き換え
+  const serializedData = JSON.stringify(appData, null, 2);
+  htmlContent = htmlContent.replace('let appData = null;', `let appData = ${serializedData};`);
+
+  // Blobの作成とファイル保存リンクの実行
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  
+  // ファイル名のデフォルト設定
+  const filename = prompt("保存する生徒用HTMLファイル名を入力してください:", "english_reading_material.html");
+  if (!filename) return;
+
+  a.download = filename.endsWith('.html') ? filename : filename + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body></html>
