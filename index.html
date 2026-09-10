@@ -1344,7 +1344,7 @@ function switchTab(tabName) {
 // Cloudflare Worker経由でGeminiを呼び出す（本物のAPIキーはWorker側にのみ存在）
 // ↓ wrangler deploy 後に発行される実際のURLに書き換えてください
 const WORKER_URL = "https://gemini-proxy.knaoshi.workers.dev/gemini";
-const WORKER_AUTH = "Basic " + btoa("seito:sakura2026");
+const WORKER_AUTH = "Basic " + btoa("seito:shinanoba2026");
 
 async function fetchGeminiText(userPrompt, systemInstruction = "") {
   const payload = {
