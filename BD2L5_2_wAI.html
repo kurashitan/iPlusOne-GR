@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>英語読解支援アプリ - 問題生成＆学習</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #e2e8f0;
+      --accent: #d97706;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --purple: #8b5cf6;
+      --purple-hover: #7c3aed;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 840px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .view-section {
+      display: none;
+    }
+    .view-section.active {
+      display: block;
+    }
+
+    /* 教員用入力画面 */
+    .admin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .admin-card h2 {
+      margin-top: 0;
+      color: var(--primary);
+    }
+    textarea {
+      width: 100%;
+      height: 180px;
+      padding: 12px;
+      font-size: 15px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-sizing: border-box;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    textarea:focus {
+      outline: 2px solid var(--primary);
+    }
+
+    /* ローディング画面 */
+    .loading-card {
+      text-align: center;
+      padding: 48px 24px;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary);
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ダウンロードバナー */
+    .download-banner {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    /* 生徒用学習画面 */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    select {
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+    }
+    .sticky-top {
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+      background: var(--card-bg);
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      max-height: 40vh;
+      overflow-y: auto;
+      margin-bottom: 16px;
+    }
+    .reading-text {
+      font-size: 16px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    
+    .vocab-target {
+      color: var(--primary);
+      font-weight: bold;
+      border-bottom: 2px dashed var(--primary);
+      cursor: pointer;
+      padding: 0 2px;
+      border-radius: 2px;
+      transition: background 0.2s;
+    }
+    .vocab-target:hover {
+      background: #dbeafe;
+    }
+    .vocab-target:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+      background: #dbeafe;
+    }
+
+    /* タブ切り替えメニュー */
+    .tab-navigation {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .tab-btn {
+      padding: 10px 16px;
+      background: #e2e8f0;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #475569;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .option-btn {
+      text-align: left;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      transition: all 0.2s;
+    }
+    .option-btn:hover {
+      background: #eff6ff;
+    }
+    .option-btn.selected {
+      border-color: var(--primary);
+      background: #dbeafe;
+      font-weight: bold;
+    }
+    .action-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .action-btn:hover {
+      background: var(--primary-hover);
+    }
+    .action-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+    .secondary-btn {
+      background: #64748b;
+    }
+    .secondary-btn:hover {
+      background: #475569;
+    }
+    .purple-btn {
+      background: var(--purple);
+    }
+    .purple-btn:hover {
+      background: var(--purple-hover);
+    }
+    .green-btn {
+      background: #10b981;
+    }
+    .green-btn:hover {
+      background: #059669;
+    }
+
+    .audio-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    }
+    .audio-btn {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .audio-btn:hover {
+      background: #059669;
+    }
+
+    .ai-chat-box {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      background: #f8fafc;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .chat-msg {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 85%;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: #dbeafe;
+      color: #1e3a8a;
+    }
+    .chat-msg.ai {
+      align-self: flex-start;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .preset-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .chip-btn {
+      background: #e0e7ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .chip-btn:hover {
+      background: #c7d2fe;
+    }
+
+    .result-item {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #fff;
+      font-weight: bold;
+    }
+    .badge.correct { background: var(--success); }
+    .badge.incorrect { background: var(--danger); }
+
+    /* モーダルポップアップ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      border: none;
+      background: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #64748b;
+    }
+    .modal-word {
+      font-size: 22px;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .modal-meaning {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+    .modal-example-box {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 1. 教員用：英文入力画面 -->
+  
+
+  <!-- 2. ローディング画面 -->
+  <section id="loadingView" class="view-section">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <h3>AIが教材データを生成中です...</h3>
+      <p style="font-size:14px; color:#64748b;">難易度別リライト、単語ヒント、読解質問を作成しています。<br>（約15〜30秒ほどかかります）</p>
+    </div>
+  </section>
+
+  <!-- 3. 生徒用：学習UI画面 -->
+  <section id="studentView" class="view-section active">
+    
+    <!-- 教員向け：配布用ファイル書き出しバー -->
+    <div id="exportBanner" class="download-banner">
+      <span style="font-size: 14px; color: #065f46; font-weight: bold;">🎉 教材データが正常に生成されました！</span>
+      <button id="downloadStudentHtmlBtn" class="action-btn green-btn" style="width: auto; padding: 8px 16px; font-size: 14px;">
+        📥 生徒用HTMLファイルを保存する
+      </button>
+    </div>
+
+    <header>
+      <h1 style="font-size:20px; margin:0;">英語読解学習</h1>
+      <div>
+        <label for="levelSelect"><b>難易度: </b></label>
+        <select id="levelSelect">
+          <option value="level_1">Level 1 (CEFR A1.1)</option>
+          <option value="level_2">Level 2 (CEFR A1.2)</option>
+          <option value="level_3" selected="">Level 3 (標準 A2)</option>
+          <option value="level_4">Level 4 (CEFR A2.2)</option>
+          <option value="level_5">Level 5 (CEFR B1)</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="sticky-top">
+      <h2>Reading Passage</h2>
+      <p style="font-size:12px; color:#64748b; margin-top:-4px; margin-bottom:8px;">💡 下線がついた青い単語をクリックすると、意味と例文が表示されます。</p>
+      <div id="readingText" class="reading-text">Mr. Parker explains the idea of universal design to the class.
+Universal design means designing products, buildings, or environments for everyone. These designs should be easy to use for people of any age, ability, or disability. Universal design <span class="vocab-target" tabindex="0" role="button" onclick="openVocabModal('level_3', 0)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">requires</span> designers to think about other people and imagine their <span class="vocab-target" tabindex="0" role="button" onclick="openVocabModal('level_3', 1)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">situations</span>. What is fine for you may not be fine for others.
+In Japan, <span class="vocab-target" tabindex="0" role="button" onclick="openVocabModal('level_3', 2)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">steps</span> are being taken to create town address signs that everyone can read. What do you think about signs written only in kanji? These signs are <span class="vocab-target" tabindex="0" role="button" onclick="openVocabModal('level_3', 3)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">unhelpful</span> for children and foreigners who cannot read kanji. They could probably read an address written in hiragana or the Roman alphabet.
+I think town address signs still have room for <span class="vocab-target" tabindex="0" role="button" onclick="openVocabModal('level_3', 4)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">improvement</span>. If the signs were also written in braille, blind or visually <span class="vocab-target" tabindex="0" role="button" onclick="openVocabModal('level_3', 5)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">impaired</span> people could read them as well.</div>
+      
+      <div class="audio-toolbar">
+        <button id="ttsPlayBtn" class="audio-btn">
+          <span>🔊</span> 英文を読み上げる
+        </button>
+        <span id="ttsStatus" style="font-size:12px; color:#64748b;"></span>
+      </div>
+    </div>
+
+    <div class="tab-navigation">
+      <button class="tab-btn active" id="tabQuizBtn" onclick="switchTab('quiz')">📝 読解クイズ</button>
+      <button class="tab-btn" id="tabTutorBtn" onclick="switchTab('tutor')">🤖 AI学習チューター</button>
+      <button class="tab-btn" id="tabWritingBtn" onclick="switchTab('writing')">✍️ AI要約・英作文添削</button>
+    </div>
+
+    <div id="tabQuizContent" class="tab-content" style="display: block;">
+      <div id="appBody" class="card">
+    <h3>Question 1 / 5</h3>
+    <p style="font-size:16px;"><b>What does universal design require designers to do?</b></p>
+    <div class="options">
+      <button class="option-btn " data-qid="1" data-optid="A">
+        <b>A.</b> To write address signs only in hiragana and braille.
+      </button>
+    
+      <button class="option-btn " data-qid="1" data-optid="B">
+        <b>B.</b> To think about other people and imagine their situations.
+      </button>
+    
+      <button class="option-btn " data-qid="1" data-optid="C">
+        <b>C.</b> To make products that are useful only for young students.
+      </button>
+    
+      <button class="option-btn " data-qid="1" data-optid="D">
+        <b>D.</b> To teach foreign languages to visually impaired people.
+      </button>
+    </div>
+    <button id="nextBtn" class="action-btn" disabled="">
+      次の質問へ
+    </button>
+  </div>
+    </div>
+
+    <div id="tabTutorContent" class="tab-content" style="display:none;">
+      <div class="card">
+        <h3>🤖 Gemini AI学習チューター</h3>
+        <p style="font-size:14px; color:#64748b;">本文の文構造・文法・和訳について質問したり、以下のクイック分析ボタンを押してください。</p>
+
+        <div class="preset-chips">
+          <button class="chip-btn" onclick="askTutorPreset('analyze')">🔍 全文の構造・文法解説</button>
+          <button class="chip-btn" onclick="askTutorPreset('translate')">🇯🇵 自然な日本語訳を表示</button>
+          <button class="chip-btn" onclick="askTutorPreset('simplify')">💡 中学生レベルにさらに噛み砕いて説明</button>
+        </div>
+
+        <div id="chatBox" class="ai-chat-box"><div class="chat-msg ai">こんにちは！この英文で分からない文法や単語、全体の意味など何でも質問してくださいね。</div></div>
+
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="tutorInput" placeholder="質問を入力... (例: whichの役割を教えて)" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:6px;">
+          <button id="sendTutorBtn" class="action-btn" style="width:auto; padding:10px 18px;">送信</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="tabWritingContent" class="tab-content" style="display:none;">
+      <div class="card">
+        <h3>✍️ AI 自由要約・英作文添削チャレンジ</h3>
+        <p style="font-size:14px; color:#64748b;">本文を読んだ感想や、1〜2文での簡単な要約を英語で書いてみましょう。Geminiが文法や表現を採点・添削します！</p>
+        
+        <textarea id="studentWritingInput" style="height:110px;" placeholder="Write your summary or thoughts in English..."></textarea>
+        
+        <button id="checkWritingBtn" class="action-btn purple-btn" style="margin-top:12px;">Gemini AIで添削・評価する</button>
+
+        <div id="writingResultArea" style="margin-top:16px; display:none;">
+          <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+          <div id="writingFeedback" style="background:#f8fafc; padding:16px; border-radius:8px; border:1px solid var(--border); font-size:14px; line-height:1.6;"></div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<!-- 単語詳細ポップアップモーダル -->
+<div id="vocabModal" class="modal-overlay">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalWord" class="modal-word"></div>
+    <div id="modalMeaning" class="modal-meaning"></div>
+    <div class="modal-example-box">
+      <div style="font-size:12px; color:#64748b; font-weight:bold; margin-bottom:4px;">例文 (Example)</div>
+      <div id="modalExampleEn" style="font-weight: bold; color:#334155;"></div>
+      <div id="modalExampleJa" style="color: #64748b; margin-top: 2px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 生徒用HTMLファイル書き出し時のファイル名入力モーダル -->
+<div id="filenameModal" class="modal-overlay">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeFilenameModal()">×</button>
+    <h3 style="margin-top:0;">生徒用HTMLファイルを保存</h3>
+    <p style="font-size:14px; color:#64748b;">保存するファイル名を入力してください。</p>
+    <input type="text" id="filenameInput" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; box-sizing:border-box; font-size:15px; margin-bottom:16px;">
+    <button id="filenameConfirmBtn" class="action-btn">保存する</button>
+  </div>
+</div>
+
+<script>
+// --- 初期埋め込み用データ変数 ---
+let appData = {
+  "level_1": {
+    "text": "Mr. Parker talks about universal design in class.\nUniversal design means making products, buildings, or places for everyone. People of all ages can use these designs easily. People with or without disabilities can use them too. Designers must think about other people's situations. Something good for you may not be good for others.\nIn Japan, people are changing town address signs so everyone can read them. Signs with only kanji are difficult for children and foreigners because they cannot read kanji. They can probably read hiragana or the Roman alphabet.\nTown address signs can still be better. If signs have braille, blind people can read them too.",
+    "hints": [
+      {
+        "word": "products",
+        "meaning": "製品、品物",
+        "example_en": "This store sells many helpful products.",
+        "example_ja": "この店は多くの役立つ製品を販売しています。"
+      },
+      {
+        "word": "disabilities",
+        "meaning": "障害",
+        "example_en": "The park is designed for people with disabilities.",
+        "example_ja": "その公園は障害のある人々のために設計されています。"
+      },
+      {
+        "word": "Designers",
+        "meaning": "デザイナー、設計者",
+        "example_en": "Designers create new and easy tools.",
+        "example_ja": "デザイナーは新しくて使いやすい道具を作ります。"
+      },
+      {
+        "word": "foreigners",
+        "meaning": "外国人",
+        "example_en": "Many foreigners visit this famous city.",
+        "example_ja": "多くの外国人がこの有名な都市を訪れます。"
+      },
+      {
+        "word": "braille",
+        "meaning": "点字",
+        "example_en": "There is braille on the elevator button.",
+        "example_ja": "エレベーターのボタンには点字が付いています。"
+      },
+      {
+        "word": "blind",
+        "meaning": "目の不自由な",
+        "example_en": "The blind man walks safely with his dog.",
+        "example_ja": "その目の不自由な男性は犬と一緒に安全に歩きます。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "What is universal design?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Making products, buildings, or places for everyone."
+          },
+          {
+            "id": "B",
+            "text": "Making signs only for students in Mr. Parker's class."
+          },
+          {
+            "id": "C",
+            "text": "Writing address signs in kanji for Japanese adults."
+          },
+          {
+            "id": "D",
+            "text": "Designing buildings only for people with disabilities."
+          }
+        ],
+        "answer": "A",
+        "explanation": "文章の冒頭で、ユニバーサルデザインとはすべての人のために製品や建物、場所を作ることだと直接説明されています。",
+        "evidence": "Universal design means making products, buildings, or places for everyone."
+      },
+      {
+        "id": 2,
+        "question": "What can children and foreigners probably read instead of kanji?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Only English braille."
+          },
+          {
+            "id": "B",
+            "text": "Hiragana or the Roman alphabet."
+          },
+          {
+            "id": "C",
+            "text": "Address signs written in big kanji."
+          },
+          {
+            "id": "D",
+            "text": "Words spoken by Mr. Parker in class."
+          }
+        ],
+        "answer": "B",
+        "explanation": "第2段落の最後で、漢字が読めない子供や外国人でも「ひらがなやローマ字なら読むことができるだろう」と述べられています。",
+        "evidence": "They can probably read hiragana or the Roman alphabet."
+      },
+      {
+        "id": 3,
+        "question": "Why are signs with only kanji difficult for children and foreigners?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Because they do not look at town signs."
+          },
+          {
+            "id": "B",
+            "text": "Because they cannot read kanji."
+          },
+          {
+            "id": "C",
+            "text": "Because they do not like Japanese towns."
+          },
+          {
+            "id": "D",
+            "text": "Because the signs are too small to see."
+          }
+        ],
+        "answer": "B",
+        "explanation": "漢字だけの看板が子供や外国人にとって難しい理由として、彼らが「漢字を読むことができないから」だと説明されています。",
+        "evidence": "Signs with only kanji are difficult for children and foreigners because they cannot read kanji."
+      },
+      {
+        "id": 4,
+        "question": "Who can read town address signs if they have braille?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Only teachers."
+          },
+          {
+            "id": "B",
+            "text": "Only designers."
+          },
+          {
+            "id": "C",
+            "text": "Foreign children."
+          },
+          {
+            "id": "D",
+            "text": "Blind people."
+          }
+        ],
+        "answer": "D",
+        "explanation": "第3段落で、もし看板に点字があれば「目の不自由な人（blind people）も読むことができる」と書かれています。",
+        "evidence": "If signs have braille, blind people can read them too."
+      },
+      {
+        "id": 5,
+        "question": "What is the main theme of this passage?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Address signs should be written only in kanji."
+          },
+          {
+            "id": "B",
+            "text": "Universal design helps various people, including on address signs."
+          },
+          {
+            "id": "C",
+            "text": "Mr. Parker wants to teach children how to read the Roman alphabet."
+          },
+          {
+            "id": "D",
+            "text": "Foreigners should learn how to write town addresses in braille."
+          }
+        ],
+        "answer": "B",
+        "explanation": "文章全体を通して、あらゆる人に配慮するユニバーサルデザインの考え方と、それを住所案内板に活かす大切さについて述べています。",
+        "evidence": "In Japan, people are changing town address signs so everyone can read them."
+      }
+    ]
+  },
+  "level_2": {
+    "text": "Mr. Parker explains universal design to his students.\nUniversal design is the design of products, buildings, or environments for all people. These designs should be easy to use for people of any age or ability. Designers must care about others and imagine their lives. Something that is easy for you may be hard for others.\nIn Japan, people are trying to improve town address signs. Address signs with only kanji are not helpful for children and foreigners because they cannot read kanji. However, they can probably read hiragana or the Roman alphabet.\nTown address signs still need some improvements. If these signs also have braille, blind or visually impaired people will be able to read them.",
+    "hints": [
+      {
+        "word": "environments",
+        "meaning": "環境",
+        "example_en": "We should keep our living environments clean.",
+        "example_ja": "私たちは生活環境を清潔に保つべきです。"
+      },
+      {
+        "word": "ability",
+        "meaning": "能力",
+        "example_en": "She has the ability to speak three languages.",
+        "example_ja": "彼女には3つの言語を話す能力があります。"
+      },
+      {
+        "word": "improve",
+        "meaning": "〜を改善する",
+        "example_en": "The company wants to improve its service.",
+        "example_ja": "その会社はサービスを改善したいと考えています。"
+      },
+      {
+        "word": "helpful",
+        "meaning": "役立つ",
+        "example_en": "This map is very helpful for tourists.",
+        "example_ja": "この地図は観光客にとってとても役立ちます。"
+      },
+      {
+        "word": "improvements",
+        "meaning": "改善、改良",
+        "example_en": "The school made improvements to the library.",
+        "example_ja": "学校は図書館の改善を行いました。"
+      },
+      {
+        "word": "impaired",
+        "meaning": "障害のある",
+        "example_en": "Special tools help visually impaired students.",
+        "example_ja": "特別な道具が視覚障害のある生徒を助けます。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "According to the passage, what should designers do for universal design?",
+        "options": [
+          {
+            "id": "A",
+            "text": "They must care about others and imagine their lives."
+          },
+          {
+            "id": "B",
+            "text": "They must write address signs only in kanji."
+          },
+          {
+            "id": "C",
+            "text": "They should design products only for young people."
+          },
+          {
+            "id": "D",
+            "text": "They should teach English in foreign countries."
+          }
+        ],
+        "answer": "A",
+        "explanation": "第1段落で、ユニバーサルデザインのためにデザイナーは他者を思いやり、その暮らしを想像しなければならないと示されています。",
+        "evidence": "Designers must care about others and imagine their lives."
+      },
+      {
+        "id": 2,
+        "question": "Which writing systems might children and foreigners be able to read?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Kanji and braille."
+          },
+          {
+            "id": "B",
+            "text": "Hiragana or the Roman alphabet."
+          },
+          {
+            "id": "C",
+            "text": "Only ancient Japanese symbols."
+          },
+          {
+            "id": "D",
+            "text": "Pictures of Japanese towns."
+          }
+        ],
+        "answer": "B",
+        "explanation": "第2段落の終わりに、ひらがなやローマ字であれば読むことができるだろうと記述されています。",
+        "evidence": "However, they can probably read hiragana or the Roman alphabet."
+      },
+      {
+        "id": 3,
+        "question": "Why are address signs written only in kanji unhelpful for some people?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Because those signs are placed in places that are too high to see."
+          },
+          {
+            "id": "B",
+            "text": "Because children and foreigners cannot read kanji."
+          },
+          {
+            "id": "C",
+            "text": "Because foreigners prefer reading signs in braille."
+          },
+          {
+            "id": "D",
+            "text": "Because designers forgot to draw pictures on the signs."
+          }
+        ],
+        "answer": "B",
+        "explanation": "漢字のみの案内板が一部の人に役立たない理由は、漢字を読むことができない子供や外国人がいるからです。",
+        "evidence": "Address signs with only kanji are not helpful for children and foreigners because they cannot read kanji."
+      },
+      {
+        "id": 4,
+        "question": "What will happen if town address signs have braille?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Blind or visually impaired people will be able to read them."
+          },
+          {
+            "id": "B",
+            "text": "Children will stop reading the Roman alphabet."
+          },
+          {
+            "id": "C",
+            "text": "Foreigners will quickly learn how to read kanji."
+          },
+          {
+            "id": "D",
+            "text": "Designers will no longer need to care about others."
+          }
+        ],
+        "answer": "A",
+        "explanation": "第3段落で、案内板に点字があれば盲目や視覚障害のある人も読めるようになると書かれています。",
+        "evidence": "If these signs also have braille, blind or visually impaired people will be able to read them."
+      },
+      {
+        "id": 5,
+        "question": "What is the author's main message in this text?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Kanji is the most useful writing system for town address signs in Japan."
+          },
+          {
+            "id": "B",
+            "text": "Universal design is important to make life easier for all kinds of people."
+          },
+          {
+            "id": "C",
+            "text": "Foreigners should study Japanese hard before visiting Japanese towns."
+          },
+          {
+            "id": "D",
+            "text": "School classes should focus on teaching how to read address signs."
+          }
+        ],
+        "answer": "B",
+        "explanation": "ユニバーサルデザインの原則を理解し適用することで、すべての人々が生活しやすくなるという点がメインメッセージです。",
+        "evidence": "Universal design is the design of products, buildings, or environments for all people."
+      }
+    ]
+  },
+  "level_3": {
+    "text": "Mr. Parker explains the idea of universal design to the class.\nUniversal design means designing products, buildings, or environments for everyone. These designs should be easy to use for people of any age, ability, or disability. Universal design requires designers to think about other people and imagine their situations. What is fine for you may not be fine for others.\nIn Japan, steps are being taken to create town address signs that everyone can read. What do you think about signs written only in kanji? These signs are unhelpful for children and foreigners who cannot read kanji. They could probably read an address written in hiragana or the Roman alphabet.\nI think town address signs still have room for improvement. If the signs were also written in braille, blind or visually impaired people could read them as well.",
+    "hints": [
+      {
+        "word": "requires",
+        "meaning": "〜を必要とする、求める",
+        "example_en": "The job requires good communication skills.",
+        "example_ja": "その仕事には優れたコミュニケーション能力が求められます。"
+      },
+      {
+        "word": "situations",
+        "meaning": "状況、立場",
+        "example_en": "We should try to understand different situations.",
+        "example_ja": "私たちはさまざまな状況を理解しようと努めるべきです。"
+      },
+      {
+        "word": "steps",
+        "meaning": "対策、取り組み",
+        "example_en": "The city is taking steps to reduce trash.",
+        "example_ja": "市はごみを減らすための取り組みを行っています。"
+      },
+      {
+        "word": "unhelpful",
+        "meaning": "役に立たない、不親切な",
+        "example_en": "The unclear guide map was unhelpful.",
+        "example_ja": "その不鮮明な案内図は役に立ちませんでした。"
+      },
+      {
+        "word": "improvement",
+        "meaning": "改善、進歩",
+        "example_en": "There is always room for improvement in design.",
+        "example_ja": "デザインには常に改善の余地があります。"
+      },
+      {
+        "word": "impaired",
+        "meaning": "障害のある",
+        "example_en": "He works to support visually impaired people.",
+        "example_ja": "彼は視覚障害者を支援するために働いています。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "What does universal design require designers to do?",
+        "options": [
+          {
+            "id": "A",
+            "text": "To write address signs only in hiragana and braille."
+          },
+          {
+            "id": "B",
+            "text": "To think about other people and imagine their situations."
+          },
+          {
+            "id": "C",
+            "text": "To make products that are useful only for young students."
+          },
+          {
+            "id": "D",
+            "text": "To teach foreign languages to visually impaired people."
+          }
+        ],
+        "answer": "B",
+        "explanation": "ユニバーサルデザインがデザイナーに要求することとして「他の人のことを考え、その状況を想像すること」が挙げられています。",
+        "evidence": "Universal design requires designers to think about other people and imagine their situations."
+      },
+      {
+        "id": 2,
+        "question": "What is currently happening in Japan regarding town address signs?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Steps are being taken to create town address signs that everyone can read."
+          },
+          {
+            "id": "B",
+            "text": "All signs are being replaced with kanji-only signs."
+          },
+          {
+            "id": "C",
+            "text": "Signs are being removed from every town in Japan."
+          },
+          {
+            "id": "D",
+            "text": "Schools are requiring students to design new town signs."
+          }
+        ],
+        "answer": "A",
+        "explanation": "第2段落の冒頭で、日本で「誰もが読める街の住所案内板を作る取り組みが進められている」と記載されています。",
+        "evidence": "In Japan, steps are being taken to create town address signs that everyone can read."
+      },
+      {
+        "id": 3,
+        "question": "Why do kanji-only address signs cause trouble for children and foreigners?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Because they are usually placed in dark places."
+          },
+          {
+            "id": "B",
+            "text": "Because children and foreigners cannot read kanji."
+          },
+          {
+            "id": "C",
+            "text": "Because hiragana is harder to read than kanji."
+          },
+          {
+            "id": "D",
+            "text": "Because they want address signs to be written only in braille."
+          }
+        ],
+        "answer": "B",
+        "explanation": "漢字だけの案内板が子供や外国人にとって不便である理由は、彼らが漢字を読むことができないからです。",
+        "evidence": "These signs are unhelpful for children and foreigners who cannot read kanji."
+      },
+      {
+        "id": 4,
+        "question": "How could address signs be made accessible for visually impaired people?",
+        "options": [
+          {
+            "id": "A",
+            "text": "By writing them in larger kanji characters."
+          },
+          {
+            "id": "B",
+            "text": "By adding braille to the signs."
+          },
+          {
+            "id": "C",
+            "text": "By placing them only near school buildings."
+          },
+          {
+            "id": "D",
+            "text": "By explaining them orally in English."
+          }
+        ],
+        "answer": "B",
+        "explanation": "第3段落で、標識に点字も併記されれば、目の不自由な人（視覚障害者）も読めるようになると述べられています。",
+        "evidence": "If the signs were also written in braille, blind or visually impaired people could read them as well."
+      },
+      {
+        "id": 5,
+        "question": "Which statement best summarizes the main idea of the passage?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Universal design concepts should be applied to town address signs to benefit diverse groups."
+          },
+          {
+            "id": "B",
+            "text": "Kanji should be taught to all foreign visitors as soon as they arrive in Japan."
+          },
+          {
+            "id": "C",
+            "text": "Town address signs in Japan are already perfect and do not need any changes."
+          },
+          {
+            "id": "D",
+            "text": "Mr. Parker believes that designers should focus only on helping blind people."
+          }
+        ],
+        "answer": "A",
+        "explanation": "多種多様な人々に配慮するために、街の案内板にもユニバーサルデザインの考え方を適用すべきだというのが全体の主旨です。",
+        "evidence": "In Japan, steps are being taken to create town address signs that everyone can read."
+      }
+    ]
+  },
+  "level_4": {
+    "text": "Mr. Parker explains the concept of universal design to his class.\nUniversal design is the design of products, buildings, or environments for everyone. These designs should be easy to use for people of any age, ability, or disability. Universal design requires designers to consider others and imagine their situations. What is acceptable for you may not be acceptable for others.\nIn Japan, measures are being taken to design town address signs that everyone can read. What do you think about address signs written exclusively in kanji? These signs are unhelpful for children and foreigners who cannot read kanji. However, they could probably read an address written in hiragana or the Roman alphabet.\nI believe town address signs leave something to be desired. If the signs were also written in braille, blind or visually impaired people could read them.",
+    "hints": [
+      {
+        "word": "concept",
+        "meaning": "概念、考え",
+        "example_en": "The teacher explained the basic concept of physics.",
+        "example_ja": "先生は物理学の基本的な概念を説明しました。"
+      },
+      {
+        "word": "consider",
+        "meaning": "〜を考慮する、考える",
+        "example_en": "We must consider the feelings of other people.",
+        "example_ja": "私たちは他人の感情を考慮しなければなりません。"
+      },
+      {
+        "word": "measures",
+        "meaning": "対策、措置",
+        "example_en": "New measures were taken to improve road safety.",
+        "example_ja": "交通安全を向上させるために新しい対策が取られました。"
+      },
+      {
+        "word": "exclusively",
+        "meaning": "〜のみで、専ら",
+        "example_en": "This club is used exclusively by members.",
+        "example_ja": "このクラブは会員のみによって使用されています。"
+      },
+      {
+        "word": "unhelpful",
+        "meaning": "役に立たない",
+        "example_en": "Short explanations can be unhelpful for beginners.",
+        "example_ja": "短い説明は初心者にとって役に立たないことがあります。"
+      },
+      {
+        "word": "impaired",
+        "meaning": "障害のある",
+        "example_en": "Facilities for hearing-impaired people are necessary.",
+        "example_ja": "聴覚障害のある人々のための施設が必要です。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "According to Mr. Parker, what is the goal of universal design?",
+        "options": [
+          {
+            "id": "A",
+            "text": "To create products, buildings, or environments that everyone can easily use."
+          },
+          {
+            "id": "B",
+            "text": "To teach foreigners how to navigate Japanese towns using kanji."
+          },
+          {
+            "id": "C",
+            "text": "To produce tools specifically for designers and teachers."
+          },
+          {
+            "id": "D",
+            "text": "To encourage people to use only the Roman alphabet on signs."
+          }
+        ],
+        "answer": "A",
+        "explanation": "ユニバーサルデザインの目標は、すべての人が使いやすい製品や建物、環境を作ることであると述べられています。",
+        "evidence": "Universal design is the design of products, buildings, or environments for everyone."
+      },
+      {
+        "id": 2,
+        "question": "Which alternative writing formats are mentioned for people who cannot read kanji?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Ancient Japanese and digital codes."
+          },
+          {
+            "id": "B",
+            "text": "Hiragana or the Roman alphabet."
+          },
+          {
+            "id": "C",
+            "text": "English full sentences and pictures."
+          },
+          {
+            "id": "D",
+            "text": "Audio descriptions and gestures."
+          }
+        ],
+        "answer": "B",
+        "explanation": "漢字を読むことができない人々にとっての代替表記として、ひらがなやローマ字が挙げられています。",
+        "evidence": "However, they could probably read an address written in hiragana or the Roman alphabet."
+      },
+      {
+        "id": 3,
+        "question": "Why are address signs written exclusively in kanji considered problematic?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Because they prevent Japanese adults from finding their locations."
+          },
+          {
+            "id": "B",
+            "text": "Because children and foreigners who lack kanji reading skills cannot understand them."
+          },
+          {
+            "id": "C",
+            "text": "Because designers spend too much time creating detailed kanji characters."
+          },
+          {
+            "id": "D",
+            "text": "Because they take up more space on streets than signs written in braille."
+          }
+        ],
+        "answer": "B",
+        "explanation": "漢字専ら（のみ）で書かれた看板は、漢字を読めない子供や外国人にとって役立たないため問題視されています。",
+        "evidence": "These signs are unhelpful for children and foreigners who cannot read kanji."
+      },
+      {
+        "id": 4,
+        "question": "What addition to town address signs would benefit people with visual impairments?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Translating the text into foreign languages."
+          },
+          {
+            "id": "B",
+            "text": "Adding braille to the signs."
+          },
+          {
+            "id": "C",
+            "text": "Making the signs colorful and bright."
+          },
+          {
+            "id": "D",
+            "text": "Replacing kanji with simpler pictures."
+          }
+        ],
+        "answer": "B",
+        "explanation": "第3段落で、看板に点字を付け加えることが視覚障害を持つ人々の助けになると記述されています。",
+        "evidence": "If the signs were also written in braille, blind or visually impaired people could read them."
+      },
+      {
+        "id": 5,
+        "question": "Which of the following best reflects the main point of the text?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Street address signs in Japan need to adopt universal design principles to accommodate all citizens and visitors."
+          },
+          {
+            "id": "B",
+            "text": "Foreign visitors should learn basic kanji so that they do not get lost in Japanese towns."
+          },
+          {
+            "id": "C",
+            "text": "Universal design is a complex concept that is rarely applied in modern public spaces."
+          },
+          {
+            "id": "D",
+            "text": "The main purpose of address signs is to assist visually impaired people through braille."
+          }
+        ],
+        "answer": "A",
+        "explanation": "日本の街の住所案内板において、居住者や訪問者すべての利便性を確保するためにユニバーサルデザインの思想を取り入れる必要があるという主旨です。",
+        "evidence": "In Japan, measures are being taken to design town address signs that everyone can read."
+      }
+    ]
+  },
+  "level_5": {
+    "text": "Part 2: Mr. Parker explains the concept of universal design to the class.\nUniversal design is the design of products, buildings, or environments for everyone. These designs should be easy to use for people of any age, ability or disability. Universal design requires designers to think of others and imagine their situations. What is OK for you may not be OK for others.\nIn Japan, steps are being taken to design town address signs that everyone can read. What do you think about address signs written only in kanji? These signs are unhelpful for kids and foreigners who cannot read kanji. They could probably read an address written in hiragana or the Roman alphabet.\nI think town address signs leave something to be desired. If the signs were written in braille as well, blind or visually impaired people could read them.",
+    "hints": [
+      {
+        "word": "concept",
+        "meaning": "概念",
+        "example_en": "Universal design is an essential concept in modern architecture.",
+        "example_ja": "ユニバーサルデザインは現代建築において欠かせない概念です。"
+      },
+      {
+        "word": "environments",
+        "meaning": "環境",
+        "example_en": "Public environments should be safe for everyone.",
+        "example_ja": "公共の環境はだれにとっても安全であるべきです。"
+      },
+      {
+        "word": "requires",
+        "meaning": "〜を必要とする、求める",
+        "example_en": "Good design requires deep empathy for users.",
+        "example_ja": "優れたデザインには利用者への深い共感が求められます。"
+      },
+      {
+        "word": "unhelpful",
+        "meaning": "役に立たない、無益な",
+        "example_en": "Signs without clear English can be unhelpful to tourists.",
+        "example_ja": "明確な英語がない標識は観光客にとって役に立たないことがあります。"
+      },
+      {
+        "word": "desired",
+        "meaning": "望まれる、理想的な（leave something to be desired: 改善の余地がある）",
+        "example_en": "The public transportation system in this area leaves something to be desired.",
+        "example_ja": "この地域の公共交通機関はまだ改善の余地があります。"
+      },
+      {
+        "word": "impaired",
+        "meaning": "障害のある",
+        "example_en": "They created a map specifically for visually impaired visitors.",
+        "example_ja": "彼らは視覚障害のある訪問者のために特化した地図を作成しました。"
+      }
+    ],
+    "questions": [
+      {
+        "id": 1,
+        "question": "What fundamental requirement does universal design impose on designers?",
+        "options": [
+          {
+            "id": "A",
+            "text": "It requires them to write all public signs in multiple languages."
+          },
+          {
+            "id": "B",
+            "text": "It requires them to consider others and empathize with their specific situations."
+          },
+          {
+            "id": "C",
+            "text": "It requires them to prioritize the needs of children over elderly citizens."
+          },
+          {
+            "id": "D",
+            "text": "It requires them to design environments exclusively for disabled individuals."
+          }
+        ],
+        "answer": "B",
+        "explanation": "ユニバーサルデザインがデザイナーに課す根本的な要件は、「他者に配慮し、その具体的な状況や立場を想像すること」だと説明されています。",
+        "evidence": "Universal design requires designers to think of others and imagine their situations."
+      },
+      {
+        "id": 2,
+        "question": "According to the passage, what is the limitation of current address signs written solely in kanji?",
+        "options": [
+          {
+            "id": "A",
+            "text": "They cannot be read by children and foreign visitors who lack kanji proficiency."
+          },
+          {
+            "id": "B",
+            "text": "They fail to provide accurate geographical details about the surrounding area."
+          },
+          {
+            "id": "C",
+            "text": "They are too expensive to produce and maintain across Japanese cities."
+          },
+          {
+            "id": "D",
+            "text": "They confuse native Japanese speakers who prefer reading the Roman alphabet."
+          }
+        ],
+        "answer": "A",
+        "explanation": "漢字のみで書かれた看板の限界は、漢字の能力が足りない子供や外国人観光客が読めないという点です。",
+        "evidence": "These signs are unhelpful for kids and foreigners who cannot read kanji."
+      },
+      {
+        "id": 3,
+        "question": "Why does the author suggest that address signs written only in kanji \"leave something to be desired\"?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Because they do not incorporate braille, leaving visually impaired individuals unable to access the information."
+          },
+          {
+            "id": "B",
+            "text": "Because they are printed in colors that are difficult to discern from a distance."
+          },
+          {
+            "id": "C",
+            "text": "Because designers refused to consult local residents before installing the signs."
+          },
+          {
+            "id": "D",
+            "text": "Because they are written in a font that cannot be easily updated."
+          }
+        ],
+        "answer": "A",
+        "explanation": "漢字のみの案内板に「改善の余地がある（leave something to be desired）」とされるのは、点字が含まれておらず視覚障害者が情報にアクセスできないためです。",
+        "evidence": "If the signs were written in braille as well, blind or visually impaired people could read them."
+      },
+      {
+        "id": 4,
+        "question": "What alternative scripts are suggested as potentially accessible options for those who struggle with kanji?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Ancient characters and symbols."
+          },
+          {
+            "id": "B",
+            "text": "Hiragana or the Roman alphabet."
+          },
+          {
+            "id": "C",
+            "text": "Technical diagrams and maps."
+          },
+          {
+            "id": "D",
+            "text": "Cursive English writing."
+          }
+        ],
+        "answer": "B",
+        "explanation": "漢字を読むのが困難な人々に対するアクセシブルな代替表記として「ひらがなやローマ字」が提示されています。",
+        "evidence": "They could probably read an address written in hiragana or the Roman alphabet."
+      },
+      {
+        "id": 5,
+        "question": "Which option best captures the underlying theme of Mr. Parker's explanation?",
+        "options": [
+          {
+            "id": "A",
+            "text": "Public infrastructure, such as town signs, should embody universal design to ensure accessibility for diverse individuals."
+          },
+          {
+            "id": "B",
+            "text": "The Japanese language should be simplified so that foreigners can read address signs effortlessly."
+          },
+          {
+            "id": "C",
+            "text": "Designers should focus primarily on braille implementation rather than script accessibility."
+          },
+          {
+            "id": "D",
+            "text": "Educational curricula must mandate the study of universal design for high school students."
+          }
+        ],
+        "answer": "A",
+        "explanation": "パーカー先生の解説の根本的なテーマは、多様な人々のアクセシビリティ（利用しやすさ）を保障するために街の標識などの公共インフラにユニバーサルデザインを具現化すべきだという点です。",
+        "evidence": "Universal design is the design of products, buildings, or environments for everyone."
+      }
+    ]
+  }
+};
+let currentLevel = 'level_3';
+let currentQuestionIndex = 0;
+let userAnswers = {};
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 配布物には教員用管理画面（adminView）が含まれないため、存在チェックしてから登録する
+  const startGenBtn = document.getElementById('startGenBtn');
+  if (startGenBtn) startGenBtn.addEventListener('click', startGeneration);
+
+  document.getElementById('levelSelect').addEventListener('change', (e) => changeLevel(e.target.value));
+  document.getElementById('sendTutorBtn').addEventListener('click', sendTutorQuery);
+  document.getElementById('tutorInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendTutorQuery(); });
+  document.getElementById('checkWritingBtn').addEventListener('click', evaluateWriting);
+  document.getElementById('ttsPlayBtn').addEventListener('click', playSpeechTTS);
+  document.getElementById('downloadStudentHtmlBtn').addEventListener('click', exportStudentHtml);
+
+  document.getElementById('vocabModal').addEventListener('click', (e) => {
+    if (e.target.id === 'vocabModal') closeModal();
+  });
+
+  document.getElementById('filenameConfirmBtn').addEventListener('click', confirmFilenameAndDownload);
+  document.getElementById('filenameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') confirmFilenameAndDownload(); });
+  document.getElementById('filenameModal').addEventListener('click', (e) => {
+    if (e.target.id === 'filenameModal') closeFilenameModal();
+  });
+
+  // 事前定義されたデータが存在する場合は直接生徒用画面を起動（配布用HTMLとして実行時）
+  if (appData) {
+    document.getElementById('exportBanner').style.display = 'none';
+    onSuccessGenerated(appData);
+  }
+});
+
+function switchView(viewId) {
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById(viewId);
+  if (target) target.classList.add('active');
+}
+
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+
+  if (tabName === 'quiz') {
+    document.getElementById('tabQuizBtn').classList.add('active');
+    document.getElementById('tabQuizContent').style.display = 'block';
+  } else if (tabName === 'tutor') {
+    document.getElementById('tabTutorBtn').classList.add('active');
+    document.getElementById('tabTutorContent').style.display = 'block';
+  } else if (tabName === 'writing') {
+    document.getElementById('tabWritingBtn').classList.add('active');
+    document.getElementById('tabWritingContent').style.display = 'block';
+  }
+}
+
+// Cloudflare Worker経由でGeminiを呼び出す（本物のAPIキーはWorker側にのみ存在）
+// ↓ wrangler deploy 後に発行される実際のURLに書き換えてください
+const WORKER_URL = "https://gemini-proxy.knaoshi.workers.dev/gemini";
+const WORKER_AUTH = "Basic " + btoa("seito:shinanoba2026");
+
+async function fetchGeminiText(userPrompt, systemInstruction = "") {
+  const payload = {
+    contents: [{ parts: [{ text: userPrompt }] }],
+    systemInstruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined
+  };
+
+  const response = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': WORKER_AUTH
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error?.message || `API Error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result?.candidates?.[0]?.content?.parts?.[0]?.text || "応答を取得できませんでした。";
+}
+
+function playSpeechTTS() {
+  if (!appData || !appData[currentLevel]) return;
+  const text = appData[currentLevel].text;
+  if (!text) return;
+
+  const statusEl = document.getElementById('ttsStatus');
+
+  if (!('speechSynthesis' in window)) {
+    statusEl.innerText = "お使いのブラウザは音声読み上げに対応していません。";
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.9;
+
+  utterance.onstart = () => { statusEl.innerText = "再生中..."; };
+  utterance.onend = () => { statusEl.innerText = ""; };
+  utterance.onerror = () => { statusEl.innerText = "読み上げエラー"; };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+async function askTutorPreset(type) {
+  if (!appData || !appData[currentLevel]) return;
+  const text = appData[currentLevel].text;
+  if (!text) return;
+
+  let query = "";
+  if (type === 'analyze') query = "この英文の重要文法ポイントと各文の構造（S, V, Oなど）を分かりやすく解説してください。";
+  if (type === 'translate') query = "この英文の自然な日本語全訳を作成してください。";
+  if (type === 'simplify') query = "中学生でもスッキリ理解できるように、もっと簡単な表現で内容を説明してください。";
+
+  appendChatMessage("user", query);
+  await processTutorResponse(query);
+}
+
+async function sendTutorQuery() {
+  const input = document.getElementById('tutorInput');
+  const query = input.value.trim();
+  if (!query) return;
+
+  input.value = "";
+  appendChatMessage("user", query);
+  await processTutorResponse(query);
+}
+
+async function processTutorResponse(userQuery) {
+  const chatBox = document.getElementById('chatBox');
+  const loadingMsg = appendChatMessage("ai", "🤖 考え中...");
+
+  try {
+    const text = (appData && appData[currentLevel] && appData[currentLevel].text) || "";
+    const systemPrompt = "あなたは親切でわかりやすい英語のパーソナルAI家庭教師です。生徒の質問に対し、丁寧で理解しやすい日本語でアドバイスしてください。";
+    const prompt = `対象英文:\n"""\n${text}\n"""\n\n質問: ${userQuery}`;
+
+    const reply = await fetchGeminiText(prompt, systemPrompt);
+    loadingMsg.innerHTML = escapeHtml(reply).replace(/\n/g, '<br>');
+    chatBox.scrollTop = chatBox.scrollHeight;
+  } catch (err) {
+    loadingMsg.innerText = "エラー: " + err.message;
+  }
+}
+
+function appendChatMessage(role, content) {
+  const chatBox = document.getElementById('chatBox');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-msg ${role}`;
+  msgDiv.innerText = content;
+  chatBox.appendChild(msgDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return msgDiv;
+}
+
+async function evaluateWriting() {
+  const writingText = document.getElementById('studentWritingInput').value.trim();
+  if (!writingText) {
+    alert("英文を入力してください。");
+    return;
+  }
+
+  const resultArea = document.getElementById('writingResultArea');
+  const feedbackDiv = document.getElementById('writingFeedback');
+  resultArea.style.display = "block";
+  feedbackDiv.innerHTML = "🤖 Geminiが添削・採点中...";
+
+  try {
+    const passageText = (appData && appData[currentLevel] && appData[currentLevel].text) || "";
+    const systemInstruction = "あなたは英語作文の添削専門家です。生徒が書いた英文のスコア（100点満点）、文法・綴りの修正、内容の正確さ、より自然な表現の提案を構造化してフィードバックしてください。";
+    const prompt = `読解本文:\n"${passageText}"\n\n生徒の提出作文:\n"${writingText}"\n\n以下の形式でフィードバックを作成してください:\n1. 総合評価スコア (0-100点)\n2. 良い点\n3. 文法・表現の改善点（修正前 vs 修正後）\n4. 内容理解度についてのコメント`;
+
+    const feedbackText = await fetchGeminiText(prompt, systemInstruction);
+    feedbackDiv.innerHTML = escapeHtml(feedbackText).replace(/\n/g, '<br>');
+  } catch (e) {
+    feedbackDiv.innerText = "添削中にエラーが発生しました: " + e.message;
+  }
+}
+
+async function startGeneration() {
+  const rawText = document.getElementById('rawTextInput').value.trim();
+  if (!rawText) {
+    alert('英文を入力してください。');
+    return;
+  }
+  switchView('loadingView');
+
+  try {
+    const generatedData = await generateAppContentAPI(rawText);
+    onSuccessGenerated(generatedData);
+  } catch (err) {
+    onError(err);
+  }
+}
+
+async function generateAppContentAPI(rawText) {
+  const systemInstruction = `あなたは日本の高校生（偏差値40〜50前後を主な対象）向けに英語教材を作成する、経験豊富な英語教育スペシャリストです。
+与えられた英文（トピック・内容）をもとに、5段階の難易度（level_1〜level_5）にリライトした読解教材データをJSON形式で生成してください。
+
+【レベルの定義】必ずこの基準に従うこと
+- level_1（CEFR A1.1）: 中学1〜2年程度。1文を短く区切り、基本語彙（中学必修レベル）のみ使用。関係詞・分詞構文は避ける。
+- level_2（CEFR A1.2）: 中学3年程度。基本語彙＋やや発展的な語彙を少量。単文・重文中心。
+- level_3（CEFR A2）: 高校標準レベル。原文の情報量をほぼ保持しつつ平易な構文に調整。
+- level_4（CEFR A2.2）: 高校標準〜やや発展。関係詞・分詞構文・従属節を適度に含む。
+- level_5（CEFR B1）: 原文に近い、自然な英語表現・語彙・構文を維持する。
+
+【各レベル共通のルール】
+1. 全レベルで「同じ出来事・同じ主張」を扱い、内容の一貫性を保つこと（レベル間で事実が食い違わないこと）。
+2. 元の英文に存在しない事実を創作しないこと（読解問題は必ず本文の記述のみを根拠にすること）。`;
+
+  const prompt = `以下の英文をもとに、level_1〜level_5それぞれについて「text」「hints」「questions」を含むJSONを生成してください。JSON以外の文字列（説明文やMarkdownのコードフェンス）は一切出力しないでください。
+
+# 元の英文
+"""
+${rawText}
+"""
+
+# 各レベルの出力要件
+
+## text
+- 上記のレベル定義に従ってリライトした英文本文。段落分けは元の構成をできる範囲で踏襲する。
+
+## hints（単語ヒント）
+- 5〜8個。「そのレベルの生徒が読解のボトルネックになりやすい語」を選ぶこと（易しすぎる語・固有名詞は除く）。
+- "word" フィールドは、"text" 本文中に実際に登場する表記・活用形と完全に一致させること（例: 本文が "praised" なら "praise" ではなく "praised" とする）。原形に直さない。
+- "meaning" は日本語の訳語（1〜2語程度、簡潔に）。
+- "example_en" / "example_ja" は、本文の文脈と紐づいた自然な例文とその日本語訳（本文の文をそのまま流用しない）。
+
+## questions（4択問題、各レベル5問）
+- 本文の内容理解を問う設問にし、レベルが上がるほど「推論」「文構造把握」の比重を増やす（level_1は事実確認中心、level_5は言い換え・推論を含める）。
+- 出題バランスの目安: 事実確認2問、因果関係を問う問題1問、詳細情報を問う問題1問、主旨・テーマを問う問題1問（5問目）。
+- 選択肢は4つ。正解は1つとし、誤答は「本文に書かれていないが、もっともらしい」内容にする（本文の一部を切り貼りしただけの明らかな誤りは避ける）。
+- 各レベルの設問は、その英文の語彙・表現レベルに合わせて書き換える（内容は同じでも文言を使い回さない）。
+- "evidence" は、その設問の根拠となる箇所を "text" 本文から一字一句そのまま抜き出すこと（要約や言い換えは不可）。
+- "explanation" は日本語で、なぜその答えになるかを1〜2文で簡潔に説明する。
+
+# 出力JSON構造（キーは必ずこの通り）
+{
+  "level_1": { "text": "...", "hints": [ {"word":"...","meaning":"...","example_en":"...","example_ja":"..."} ], "questions": [ {"id":1,"question":"...","options":[{"id":"A","text":"..."},{"id":"B","text":"..."},{"id":"C","text":"..."},{"id":"D","text":"..."}],"answer":"A","explanation":"...","evidence":"..."} ] },
+  "level_2": { ... },
+  "level_3": { ... },
+  "level_4": { ... },
+  "level_5": { ... }
+}`;
+
+  const jsonResponseText = await fetchGeminiText(prompt, systemInstruction);
+  const cleanJson = jsonResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+  let parsedData;
+  try {
+    parsedData = JSON.parse(cleanJson);
+  } catch (e) {
+    throw new Error('AIの応答をJSONとして解析できませんでした。もう一度「問題生成」をお試しください。');
+  }
+
+  validateGeneratedData(parsedData);
+  return parsedData;
+}
+
+// --- AI生成結果の軽量スキーマ検証 ---
+function validateGeneratedData(data) {
+  const requiredLevels = ['level_1', 'level_2', 'level_3', 'level_4', 'level_5'];
+
+  if (!data || typeof data !== 'object') {
+    throw new Error('生成データの形式が不正です。もう一度「問題生成」をお試しください。');
+  }
+
+  requiredLevels.forEach(levelKey => {
+    const levelData = data[levelKey];
+    if (!levelData) {
+      throw new Error(`${levelKey} のデータが生成されていません。もう一度お試しください。`);
+    }
+    if (typeof levelData.text !== 'string' || !levelData.text.trim()) {
+      throw new Error(`${levelKey} の本文が空です。もう一度お試しください。`);
+    }
+    if (!Array.isArray(levelData.questions) || levelData.questions.length === 0) {
+      throw new Error(`${levelKey} の問題が生成されていません。もう一度お試しください。`);
+    }
+    if (levelData.hints && !Array.isArray(levelData.hints)) {
+      throw new Error(`${levelKey} の単語ヒントの形式が不正です。もう一度お試しください。`);
+    }
+
+    levelData.questions.forEach((q, idx) => {
+      if (!Array.isArray(q.options) || q.options.length !== 4) {
+        throw new Error(`${levelKey} の問題${idx + 1}: 選択肢が4つではありません。もう一度お試しください。`);
+      }
+      const optionIds = q.options.map(opt => opt.id);
+      if (!optionIds.includes(q.answer)) {
+        throw new Error(`${levelKey} の問題${idx + 1}: 正解(answer)が選択肢の中に存在しません。もう一度お試しください。`);
+      }
+    });
+  });
+
+  return true;
+}
+
+function onSuccessGenerated(data) {
+  appData = data;
+  currentLevel = 'level_3';
+  document.getElementById('levelSelect').value = 'level_3';
+  currentQuestionIndex = 0;
+  userAnswers = {};
+
+  renderLevel();
+  switchView('studentView');
+  switchTab('quiz');
+}
+
+function onError(error) {
+  alert('エラーが発生しました: ' + (error.message || error));
+  switchView('adminView');
+}
+
+function changeLevel(level) {
+  currentLevel = level;
+  currentQuestionIndex = 0;
+  userAnswers = {};
+  renderLevel();
+}
+
+// 正規表現の特殊文字をエスケープする（ヒント語に . * + ? などが含まれても安全にマッチさせるため）
+function escapeRegex(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function renderLevel() {
+  const data = appData[currentLevel];
+  if (!data) return;
+
+  const textContainer = document.getElementById('readingText');
+  const rawText = data.text || '';
+
+  // 1. 元のプレーンテキストに対して、全ヒント語の出現位置を先に洗い出す
+  let matches = [];
+  if (data.hints && data.hints.length > 0) {
+    data.hints.forEach((hint, index) => {
+      if (!hint.word) return;
+      const regex = new RegExp(`\\b(${escapeRegex(hint.word)})\\b`, 'gi');
+      let m;
+      while ((m = regex.exec(rawText)) !== null) {
+        matches.push({ start: m.index, end: m.index + m[0].length, hintIndex: index });
+        if (m.index === regex.lastIndex) regex.lastIndex++; // ゼロ幅マッチの無限ループ防止
+      }
+    });
+  }
+
+  // 2. 開始位置でソートし、範囲が重なるマッチは先に見つかった方を優先して除外する
+  matches.sort((a, b) => a.start - b.start);
+  const uniqueMatches = [];
+  let lastEnd = -1;
+  matches.forEach(m => {
+    if (m.start >= lastEnd) {
+      uniqueMatches.push(m);
+      lastEnd = m.end;
+    }
+  });
+
+  // 3. 後ろの位置から前へ向かって置換する（前から置換するとインデックスがずれるため）
+  let segments = [];
+  let cursor = rawText.length;
+  for (let i = uniqueMatches.length - 1; i >= 0; i--) {
+    const m = uniqueMatches[i];
+    segments.unshift(escapeHtml(rawText.slice(m.end, cursor)));
+    const wordText = rawText.slice(m.start, m.end);
+    segments.unshift(
+      `<span class="vocab-target" tabindex="0" role="button" ` +
+      `onclick="openVocabModal('${currentLevel}', ${m.hintIndex})" ` +
+      `onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">` +
+      `${escapeHtml(wordText)}</span>`
+    );
+    cursor = m.start;
+  }
+  segments.unshift(escapeHtml(rawText.slice(0, cursor)));
+
+  textContainer.innerHTML = segments.join('');
+  showQuestion(currentQuestionIndex);
+}
+
+function openVocabModal(level, hintIndex) {
+  const hint = appData[level]?.hints?.[hintIndex];
+  if (!hint) return;
+
+  document.getElementById('modalWord').innerText = hint.word;
+  document.getElementById('modalMeaning').innerText = hint.meaning;
+  document.getElementById('modalExampleEn').innerText = hint.example_en || hint.example || "No example sentence available.";
+  document.getElementById('modalExampleJa').innerText = hint.example_ja || "";
+
+  document.getElementById('vocabModal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('vocabModal').classList.remove('active');
+}
+
+function showQuestion(index) {
+  const questions = appData[currentLevel]?.questions;
+  if (!questions || questions.length === 0) {
+    document.getElementById('appBody').innerHTML = "<p>問題データが見つかりません。</p>";
+    return;
+  }
+
+  const qData = questions[index];
+  const appBody = document.getElementById('appBody');
+  const selected = userAnswers[qData.id] || "";
+
+  let optionsHTML = qData.options.map(opt => {
+    const isSelected = selected === opt.id;
+    return `
+      <button class="option-btn ${isSelected ? 'selected' : ''}" data-qid="${qData.id}" data-optid="${opt.id}">
+        <b>${escapeHtml(opt.id)}.</b> ${escapeHtml(opt.text)}
+      </button>
+    `;
+  }).join('');
+
+  appBody.innerHTML = `
+    <h3>Question ${index + 1} / ${questions.length}</h3>
+    <p style="font-size:16px;"><b>${escapeHtml(qData.question)}</b></p>
+    <div class="options">${optionsHTML}</div>
+    <button id="nextBtn" class="action-btn" ${!selected ? 'disabled' : ''}>
+      ${index < questions.length - 1 ? '次の質問へ' : '解答を確認する'}
+    </button>
+  `;
+
+  appBody.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const qid = btn.getAttribute('data-qid');
+      const optid = btn.getAttribute('data-optid');
+      selectOption(qid, optid);
+    });
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', nextStep);
+}
+
+function selectOption(qId, letter) {
+  userAnswers[qId] = letter;
+  showQuestion(currentQuestionIndex);
+}
+
+function nextStep() {
+  const questions = appData[currentLevel].questions;
+  if (currentQuestionIndex < questions.length - 1) {
+    currentQuestionIndex++;
+    showQuestion(currentQuestionIndex);
+  } else {
+    showReviewScreen();
+  }
+}
+
+function showReviewScreen() {
+  const questions = appData[currentLevel].questions;
+  const appBody = document.getElementById('appBody');
+
+  let reviewHTML = `<h3>解答の確認</h3><p>全${questions.length}問の回答が完了しました。内容を確認してください。</p><ul>`;
+  questions.forEach(q => {
+    const ans = userAnswers[q.id] || "未選択";
+    reviewHTML += `<li><b>Q${q.id}:</b> 選択した答え <b>${escapeHtml(ans)}</b></li>`;
+  });
+  reviewHTML += `</ul>
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button id="fixBtn" class="action-btn secondary-btn">修正する</button>
+      <button id="gradeBtn" class="action-btn">採点する</button>
+    </div>
+  `;
+  appBody.innerHTML = reviewHTML;
+
+  document.getElementById('fixBtn').addEventListener('click', () => {
+    currentQuestionIndex = 0;
+    showQuestion(0);
+  });
+  document.getElementById('gradeBtn').addEventListener('click', gradeAnswers);
+}
+
+function gradeAnswers() {
+  const questions = appData[currentLevel].questions;
+  const total = questions.length;
+  const appBody = document.getElementById('appBody');
+
+  // AIの出力に問題があり、問題数が0件だった場合の保険
+  if (total === 0) {
+    appBody.innerHTML = `
+      <h2>採点できませんでした</h2>
+      <p>このレベルの問題データが存在しないため、採点を行えません。教員に教材の再生成を依頼してください。</p>
+      <div style="display:flex; gap:12px; margin-top:20px;">
+        <button id="backToQuizBtn" class="action-btn secondary-btn">戻る</button>
+      </div>
+    `;
+    document.getElementById('backToQuizBtn').addEventListener('click', () => changeLevel(currentLevel));
+    return;
+  }
+
+  let correctCount = 0;
+  questions.forEach(q => {
+    if (userAnswers[q.id] === q.answer) {
+      correctCount++;
+    }
+  });
+
+  const score = Math.round((correctCount / total) * 100);
+
+  let resultHTML = `
+    <h2>採点結果: ${score}点 / 100点 (${correctCount}/${total}正解)</h2>
+    <hr style="border:none; border-top:1px solid var(--border); margin:16px 0;">
+  `;
+
+  questions.forEach((q, idx) => {
+    const isCorrect = userAnswers[q.id] === q.answer;
+    resultHTML += `
+      <div class="result-item">
+        <p>
+          <span class="badge ${isCorrect ? 'correct' : 'incorrect'}">
+            ${isCorrect ? '正解' : '不正解'}
+          </span>
+          <b style="margin-left:8px;">Q${idx + 1}: ${escapeHtml(q.question)}</b>
+        </p>
+        <p>あなたの回答: <b>${escapeHtml(userAnswers[q.id] || "未解答")}</b> | 正解: <b style="color:var(--primary);">${escapeHtml(q.answer)}</b></p>
+        <div style="font-size:14px; background:#f8fafc; padding:12px; border-radius:6px; line-height:1.5; margin-top:8px;">
+          <b>根拠英文:</b> <i>"${escapeHtml(q.evidence)}"</i><br>
+          <b>解説:</b> ${escapeHtml(q.explanation)}
+        </div>
+      </div>
+    `;
+  });
+
+  // 配布物（生徒用エクスポート版）には教員用管理画面(adminView)が存在しないため、
+  // その場合は「新しい英文を入力する」ボタンを表示しない
+  const hasAdminView = !!document.getElementById('adminView');
+
+  resultHTML += `
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      ${hasAdminView ? '<button id="resetAdminBtn" class="action-btn secondary-btn">新しい英文を入力する</button>' : ''}
+      <button id="retryBtn" class="action-btn">もう一度解く</button>
+    </div>
+  `;
+  appBody.innerHTML = resultHTML;
+
+  if (hasAdminView) {
+    document.getElementById('resetAdminBtn').addEventListener('click', () => switchView('adminView'));
+  }
+  document.getElementById('retryBtn').addEventListener('click', () => changeLevel(currentLevel));
+}
+
+function escapeHtml(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// --- 生徒用HTMLファイルの書き出し機能 ---
+let pendingExportBlobUrl = null;
+
+function exportStudentHtml() {
+  if (!appData) {
+    alert("教材データが存在しません。");
+    return;
+  }
+
+  // 現在のDOMを複製し、配布物には教員用管理画面（adminView）を含めないようにする
+  const clonedDoc = document.documentElement.cloneNode(true);
+  const adminViewInClone = clonedDoc.querySelector('#adminView');
+  if (adminViewInClone) {
+    adminViewInClone.remove();
+  }
+
+  // 教員がプレビュー中に触った一時的なUI状態（モーダルの開閉、チューターの会話履歴、
+  // 添削結果、読み上げステータスなど）が配布物に残らないよう初期状態に戻す
+  const vocabModalInClone = clonedDoc.querySelector('#vocabModal');
+  if (vocabModalInClone) vocabModalInClone.classList.remove('active');
+
+  const filenameModalInClone = clonedDoc.querySelector('#filenameModal');
+  if (filenameModalInClone) filenameModalInClone.classList.remove('active');
+
+  const chatBoxInClone = clonedDoc.querySelector('#chatBox');
+  if (chatBoxInClone) {
+    chatBoxInClone.innerHTML = '<div class="chat-msg ai">こんにちは！この英文で分からない文法や単語、全体の意味など何でも質問してくださいね。</div>';
+  }
+
+  const writingResultAreaInClone = clonedDoc.querySelector('#writingResultArea');
+  if (writingResultAreaInClone) writingResultAreaInClone.style.display = 'none';
+
+  const writingFeedbackInClone = clonedDoc.querySelector('#writingFeedback');
+  if (writingFeedbackInClone) writingFeedbackInClone.innerHTML = '';
+
+  const ttsStatusInClone = clonedDoc.querySelector('#ttsStatus');
+  if (ttsStatusInClone) ttsStatusInClone.textContent = '';
+
+  let htmlContent = '<!DOCTYPE html>\n' + clonedDoc.outerHTML;
+
+  // appDataをコード内に直接埋め込むよう置き換え
+  const serializedData = JSON.stringify(appData, null, 2);
+  htmlContent = htmlContent.replace('let appData = null;', `let appData = ${serializedData};`);
+
+  // Blobを作成し、ファイル名確定まで保持しておく
+  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
+  if (pendingExportBlobUrl) {
+    URL.revokeObjectURL(pendingExportBlobUrl);
+  }
+  pendingExportBlobUrl = URL.createObjectURL(blob);
+
+  openFilenameModal();
+}
+
+function openFilenameModal() {
+  const input = document.getElementById('filenameInput');
+  input.value = 'english_reading_material.html';
+  document.getElementById('filenameModal').classList.add('active');
+  input.focus();
+  input.select();
+}
+
+function closeFilenameModal() {
+  document.getElementById('filenameModal').classList.remove('active');
+  if (pendingExportBlobUrl) {
+    URL.revokeObjectURL(pendingExportBlobUrl);
+    pendingExportBlobUrl = null;
+  }
+}
+
+function confirmFilenameAndDownload() {
+  const input = document.getElementById('filenameInput');
+  const filename = input.value.trim();
+  if (!filename) {
+    input.focus();
+    return;
+  }
+  if (!pendingExportBlobUrl) return;
+
+  const a = document.createElement('a');
+  a.href = pendingExportBlobUrl;
+  a.download = filename.endsWith('.html') ? filename : filename + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  document.getElementById('filenameModal').classList.remove('active');
+  URL.revokeObjectURL(pendingExportBlobUrl);
+  pendingExportBlobUrl = null;
+}
+</script>
+
+</body></html>
